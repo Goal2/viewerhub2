@@ -7,3 +7,18 @@
 html, body {
   height: 100%;
 }
+/* -------- Fond "LED" chill -------- */
+.bg-blobs{
+  background:
+    radial-gradient(1000px 700px at 0% -10%, rgba(124,58,237,.22), transparent 60%),
+    radial-gradient(900px 600px at 100% 110%, rgba(34,211,238,.18), transparent 60%);
+}
+
+.led-grid{
+  background-image:
+    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(255,255,255,.06) 1px, transparent 1px);
+  background-size: 22px 22px;
+  opacity: .15;
+  mix-blend: screen;
+}
