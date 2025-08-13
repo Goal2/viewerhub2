@@ -1,24 +1,34 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root { color-scheme: dark; }
-
-html, body {
-  height: 100%;
-}
-/* -------- Fond "LED" chill -------- */
-.bg-blobs{
+/* ---------- Fond LED Chill (blobs + grille) ---------- */
+.led-blobs {
+  position: fixed;
+  inset: -10%;
   background:
-    radial-gradient(1000px 700px at 0% -10%, rgba(124,58,237,.22), transparent 60%),
-    radial-gradient(900px 600px at 100% 110%, rgba(34,211,238,.18), transparent 60%);
+    radial-gradient(55vw 40vw at -10% 0%, rgba(124,58,237,0.22), transparent 60%),
+    radial-gradient(48vw 36vw at 110% 110%, rgba(34,211,238,0.18), transparent 60%),
+    radial-gradient(40vw 30vw at 60% 80%, rgba(167,139,250,0.16), transparent 60%);
+  filter: blur(30px);
+  animation: blobs-float 28s ease-in-out infinite alternate;
+  pointer-events: none;
 }
 
-.led-grid{
+@keyframes blobs-float {
+  0%   { transform: translate3d(0,0,0) scale(1); }
+  100% { transform: translate3d(0,-2%,0) scale(1.02); }
+}
+
+.led-grid {
+  position: fixed;
+  inset: 0;
   background-image:
-    linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(255,255,255,.06) 1px, transparent 1px);
-  background-size: 22px 22px;
-  opacity: .15;
-  mix-blend: screen;
+    radial-gradient(rgba(255,255,255,.055) 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: .18;
+  mix-blend-mode: screen;
+  animation: grid-drift 60s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes grid-drift {
+  from { transform: translate3d(0,0,0); }
+  to   { transform: translate3d(240px,120px,0); }
 }
