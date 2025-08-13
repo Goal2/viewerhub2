@@ -2,10 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-/* un minimum de thème global */
 :root { color-scheme: dark; }
+
 html, body {
   height: 100%;
-  background: #0b0b11;      /* fond sombre, comme avant */
-  color: #e5e7eb;           /* text-gray-200 */
 }
