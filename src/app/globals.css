@@ -1,22 +1,16 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Fond dark global */
+/* Fond dark */
 html, body, :root {
   height: 100%;
   background: #0b0b10;
-  color-scheme: dark;
 }
 
-/* --- Halos chill (plus de mouvement mais discret) --- */
+/* Halos chill (mouvement léger) */
 .main-bg {
   position: fixed;
   inset: 0;
   pointer-events: none;
   overflow: hidden;
 }
-
 .halo {
   position: absolute;
   width: 48rem;
@@ -27,30 +21,26 @@ html, body, :root {
   transform: translate(-50%, -50%);
   animation: haloFloat 24s ease-in-out infinite;
 }
-
 .halo--purple {
   background: radial-gradient(circle at 30% 30%, rgba(147, 51, 234, .80), transparent 60%);
 }
-
 .halo--cyan {
   background: radial-gradient(circle at 70% 70%, rgba(34, 211, 238, .80), transparent 60%);
   animation-duration: 28s;
 }
-
 @keyframes haloFloat {
   0%   { transform: translate(-48%, -52%) scale(1); }
   50%  { transform: translate(-52%, -48%) scale(1.04); }
   100% { transform: translate(-48%, -52%) scale(1); }
 }
 
-/* --- Composants réutilisables --- */
+/* Cartes & boutons */
 .card {
   border-radius: 1rem;
   background: rgba(255,255,255,.05);
   border: 1px solid rgba(255,255,255,.10);
   box-shadow: 0 10px 30px rgba(0,0,0,.35);
 }
-
 .btn {
   display: inline-flex;
   align-items: center;
@@ -65,22 +55,19 @@ html, body, :root {
   background: rgba(255,255,255,.10);
   border-color: rgba(255,255,255,.25);
 }
-
 .btn-primary {
   display: inline-flex;
   align-items: center;
   gap: .5rem;
   border-radius: .75rem;
-  background: #9146ff;       /* violet Twitch */
+  background: #9146ff;
   color: #fff;
   padding: .5rem 1rem;
   transition: filter .2s ease, transform .2s ease;
 }
-.btn-primary:hover {
-  filter: brightness(1.1);
-}
+.btn-primary:hover { filter: brightness(1.1); }
 
-/* Points du graphe avec lueur douce */
+/* Petit glow doux pour les points de graph */
 @keyframes glowPulse {
   0%, 100% { filter: drop-shadow(0 0 0 rgba(196,181,253,0)); }
   50%      { filter: drop-shadow(0 0 6px rgba(196,181,253,.8)); }
