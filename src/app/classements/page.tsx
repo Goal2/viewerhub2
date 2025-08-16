@@ -1,13 +1,13 @@
-// src/app/classements/page.tsx
 "use client";
-
 import React from "react";
 
-export default function ClassementsPage() {
+export default function Page() {
   return (
-    <main style={{ padding: 24 }}>
-      <h1>Classements</h1>
-      <p>La page /classements compile ✅</p>
-    </main>
+    <div style={{ padding: 24, color: "#fff" }}>
+      /classements — placeholder OK
+    </div>
   );
 }
+
+// (optionnel mais inoffensif) force TS à considérer le fichier comme module
+export {};
