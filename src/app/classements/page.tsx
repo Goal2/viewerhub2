@@ -1,5 +1,6 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+
+import React, { useMemo, useRef, useState } from "react";
 
 /* ===== MOCKS ===== */
 type Item = { name: string; value: number };
@@ -16,11 +17,11 @@ const DAILY = Array.from({ length: 14 }).map((_, i) => {
 /* ================= */
 
 const nf = new Intl.NumberFormat("fr-FR");
+
 const medal = (n: number) => (n === 1 ? "🥇" : n === 2 ? "🥈" : n === 3 ? "🥉" : "•");
-const isFirefox = () => typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent);
+const sum = (arr: number[]) => arr.reduce((a, b) => a + b, 0);
 
 function smoothPath(values: number[], W: number, H: number, pad = 10) {
-  // lissage simple (Catmull-Rom approx vers cubic-bezier-like)
   const max = Math.max(...values);
   const min = Math.min(...values);
   const span = Math.max(1, max - min);
@@ -44,66 +45,52 @@ function smoothPath(values: number[], W: number, H: number, pad = 10) {
   return d;
 }
 
-/* ---------- Iframe with Firefox fallback ---------- */
-function SafeIframe({
-  src,
-  className,
-  fallbackHref,
-  label,
+/* Iframe amélioré : on ne cache plus l’iframe sur Firefox.
+   On met une petite barre d’aide dessous pour ouvrir dans Twitch si ça ne s’affiche pas. */
+function TwitchEmbed({
+  type,
+  channel,
+  parent,
   height,
 }: {
-  src: string;
-  className?: string;
-  fallbackHref: string;
-  label: string;
-  height: number | string;
+  type: "chat" | "player";
+  channel: string;
+  parent: string;
+  height: number;
 }) {
-  const [failed, setFailed] = useState(false);
-  const ref = useRef<HTMLIFrameElement>(null);
+  const src =
+    type === "chat"
+      ? `https://www.twitch.tv/embed/${channel}/chat?parent=${parent}`
+      : `https://player.twitch.tv/?channel=${channel}&parent=${parent}&muted=true&autoplay=true`;
 
-  useEffect(() => {
-    if (!ref.current) return;
-    const timer = setTimeout(() => {
-      // si onload jamais déclenché (Firefox/ETP strict) => fallback
-      setFailed(true);
-    }, 1600);
-    const onLoad = () => clearTimeout(timer);
-    ref.current.addEventListener("load", onLoad);
-    return () => clearTimeout(timer);
-  }, [src]);
-
-  if (failed || isFirefox()) {
-    return (
-      <div className="flex h-[--h] w-full flex-col items-center justify-center rounded-xl border border-white/10 bg-white/5 p-6 text-center"
-           style={{ ["--h" as any]: typeof height === "number" ? `${height}px` : height }}>
-        <div className="text-lg font-semibold mb-2">{label} indisponible en iframe</div>
-        <p className="text-sm text-white/70">
-          Firefox bloque parfois l’intégration. Ouvre-le dans un nouvel onglet
-          (ou autorise les cookies tiers pour Twitch).
-        </p>
-        <a
-          className="mt-3 inline-flex items-center gap-2 rounded-xl bg-[#8b5cf6] px-4 py-2 text-sm font-medium shadow-glow hover:opacity-95"
-          href={fallbackHref}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Ouvrir {label}
-        </a>
-      </div>
-    );
-  }
+  const link =
+    type === "chat"
+      ? `https://www.twitch.tv/popout/${channel}/chat?popout=`
+      : `https://www.twitch.tv/${channel}`;
 
   return (
-    <iframe
-      ref={ref}
-      src={src}
-      className={className}
-      height={height}
-      width="100%"
-      allow="autoplay; picture-in-picture; fullscreen"
-      allowFullScreen
-      title={label}
-    />
+    <div className="w-full">
+      <iframe
+        src={src}
+        height={height}
+        width="100%"
+        className="w-full rounded-xl"
+        allow="autoplay; picture-in-picture; fullscreen"
+        allowFullScreen
+        title={type === "chat" ? "Chat Twitch" : "Lecteur Twitch"}
+      />
+      <div className="mt-2 flex items-center justify-between rounded-xl border border-white/10 bg-white/[.04] p-2 text-xs text-white/70">
+        <span>Si rien ne s’affiche (Firefox / cookies tiers), ouvre-le dans un onglet :</span>
+        <a
+          href={link}
+          target="_blank"
+          rel="noreferrer"
+          className="ml-2 rounded-lg bg-[#8b5cf6] px-3 py-1 font-medium text-white shadow-glow hover:opacity-95"
+        >
+          {type === "chat" ? "Ouvrir le chat" : "Ouvrir le lecteur"}
+        </a>
+      </div>
+    </div>
   );
 }
 
@@ -122,46 +109,72 @@ export default function Page() {
   }, [q]);
 
   const max = Math.max(1, ...TOP_CHATTERS.map((i) => i.value));
-  const W = 560, H = 160;
+  const W = 580, H = 180;
   const path = smoothPath(DAILY.map((d) => d.messages), W, H);
 
+  const total14 = sum(DAILY.map((d) => d.messages));
+  const avg = Math.round(total14 / DAILY.length);
+
   return (
-    <div className="relative grid h-screen grid-rows-[auto,1fr]">
-      {/* halos (plus de mouvement) */}
+    <div className="relative grid min-h-screen grid-rows-[auto,1fr]">
+      {/* halos plus amples */}
       <div className="pointer-events-none absolute inset-0 mix-blend-soft-light">
-        <div className="absolute -left-40 top-10 h-[40rem] w-[40rem] rounded-full bg-gradient-to-tr from-fuchsia-600/30 via-purple-500/20 to-cyan-400/20 blur-3xl animate-floatA" />
-        <div className="absolute -right-40 bottom-10 h-[42rem] w-[42rem] rounded-full bg-gradient-to-tr from-cyan-400/25 via-teal-400/20 to-fuchsia-500/20 blur-3xl animate-floatB" />
-        <div className="absolute left-[40%] top-[45%] h-[36rem] w-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-tr from-violet-500/18 via-fuchsia-500/14 to-cyan-400/16 blur-3xl animate-floatC" />
+        <div className="absolute -left-48 top-10 h-[48rem] w-[48rem] rounded-full bg-gradient-to-tr from-fuchsia-600/30 via-purple-500/20 to-cyan-400/20 blur-3xl animate-floatA" />
+        <div className="absolute -right-52 bottom-12 h-[50rem] w-[50rem] rounded-full bg-gradient-to-tr from-cyan-400/25 via-teal-400/20 to-fuchsia-500/20 blur-3xl animate-floatB" />
+        <div className="absolute left-[42%] top-[45%] h-[38rem] w-[38rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-tr from-violet-500/18 via-fuchsia-500/14 to-cyan-400/16 blur-3xl animate-floatC" />
+        <div className="absolute left-1/2 bottom-[8%] h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-gradient-to-tr from-fuchsia-500/14 via-indigo-500/10 to-cyan-400/12 blur-3xl animate-floatD" />
       </div>
+      {/* LEDs chill */}
+      <div className="led-field" />
 
       {/* HEADER */}
-      <header className="relative z-10 flex items-center gap-3 px-6 py-4">
-        <button onClick={() => history.back()} className="btn">← Retour</button>
+      <header className="relative z-10 px-6 pt-6 pb-3">
+        <div className="flex flex-wrap items-end gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#9146ff] via-[#7c4dff] to-[#22d3ee]">
+              Classements
+            </h1>
+            <p className="text-white/70">
+              Messages, tips et mois de sub — en temps quasi réel (style Twitch).
+            </p>
+          </div>
+          {/* onglets pill stylés */}
+          <nav className="ml-auto flex items-center gap-1 rounded-2xl border border-white/10 bg-white/5 p-1">
+            {(["chat", "tips", "subs"] as const).map((k) => (
+              <button
+                key={k}
+                onClick={() => setTab(k)}
+                className={`px-4 py-1.5 rounded-xl text-sm font-medium transition ${
+                  tab === k
+                    ? "bg-gradient-to-r from-[#9146ff] to-[#22d3ee] text-white shadow-glow"
+                    : "text-white/80 hover:bg-white/10"
+                }`}
+              >
+                {k === "chat" ? "Top chatters" : k === "tips" ? "Top dons (tips)" : "Top subs (mois)"}
+              </button>
+            ))}
+          </nav>
+        </div>
 
-        {/* Onglets stylés */}
-        <nav className="ml-1 flex items-center gap-1 rounded-2xl border border-white/10 bg-white/5 p-1">
-          {(["chat", "tips", "subs"] as const).map((k) => (
-            <button
-              key={k}
-              onClick={() => setTab(k)}
-              className={`px-4 py-1.5 rounded-xl text-sm font-medium transition ${
-                tab === k
-                  ? "bg-gradient-to-r from-[#9146ff] to-[#22d3ee] text-white shadow-glow"
-                  : "text-white/80 hover:bg-white/10"
-              }`}
-            >
-              {k === "chat" && "Top chatters"}
-              {k === "tips" && "Top dons (tips)"}
-              {k === "subs" && "Top subs (mois)"}
-            </button>
-          ))}
-        </nav>
-
-        <div className="ml-auto text-[15px] text-white/70">style Twitch • chill</div>
+        {/* KPI cards */}
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <div className="card p-4 shadow-glow">
+            <div className="text-xs uppercase tracking-wider text-white/60">Total 14 jours</div>
+            <div className="mt-1 text-2xl font-bold">{nf.format(total14)} msgs</div>
+          </div>
+          <div className="card p-4">
+            <div className="text-xs uppercase tracking-wider text-white/60">Moyenne / jour</div>
+            <div className="mt-1 text-2xl font-bold">{nf.format(avg)} msgs</div>
+          </div>
+          <div className="card p-4">
+            <div className="text-xs uppercase tracking-wider text-white/60">Mock rang perso</div>
+            <div className="mt-1 text-2xl font-bold">#12 <span className="text-white/60 text-base">/ 3 214</span></div>
+          </div>
+        </div>
       </header>
 
       {/* CONTENU */}
-      <main className="relative z-10 grid grid-cols-12 gap-6 px-6 pb-6">
+      <main className="relative z-10 grid grid-cols-12 gap-6 px-6 pb-8">
         {/* Gauche : table + graph */}
         <section className="col-span-7 flex min-h-0 flex-col">
           {/* tableau */}
@@ -214,80 +227,93 @@ export default function Page() {
             </div>
 
             <div className="relative">
-              {/* glow sous la ligne */}
-              <div className="pointer-events-none absolute inset-0 blur-2xl opacity-50">
-                <svg viewBox={`0 0 ${W} ${H}`} className="h-40 w-full">
-                  <path d={path} stroke="#a78bfa" strokeWidth="8" fill="none" opacity=".15" />
+              {/* grille qui dérive légèrement */}
+              <div className="pointer-events-none absolute inset-0">
+                <svg viewBox={`0 0 ${W} ${H}`} className="h-44 w-full">
+                  {[0, 1, 2, 3].map((g) => (
+                    <line
+                      key={g}
+                      x1="10" x2={W - 10}
+                      y1={10 + g * ((H - 20) / 3)}
+                      y2={10 + g * ((H - 20) / 3)}
+                      stroke="rgba(255,255,255,.08)"
+                      strokeWidth="1"
+                      className="animate-gridDrift"
+                    />
+                  ))}
                 </svg>
               </div>
 
-              <svg viewBox={`0 0 ${W} ${H}`} className="h-40 w-full">
-                {/* grille */}
-                {[0, 1, 2, 3].map((g) => (
-                  <line
-                    key={g}
-                    x1="10" x2={W - 10}
-                    y1={10 + g * ((H - 20) / 3)}
-                    y2={10 + g * ((H - 20) / 3)}
-                    stroke="rgba(255,255,255,.08)" strokeWidth="1"
-                  />
-                ))}
-
-                {/* ligne animée */}
+              {/* courbe + aire + glow + dash loop */}
+              <svg viewBox={`0 0 ${W} ${H}`} className="h-44 w-full">
                 <defs>
                   <linearGradient id="lineGrad" x1="0" x2="0" y1="0" y2="1">
                     <stop offset="0%" stopColor="#a78bfa" />
                     <stop offset="100%" stopColor="#22d3ee" />
                   </linearGradient>
+                  <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
+                    <stop offset="0%" stopColor="rgba(167,139,250,.35)" />
+                    <stop offset="100%" stopColor="rgba(34,211,238,.05)" />
+                  </linearGradient>
                 </defs>
+
+                {/* aire sous la courbe */}
+                {path && (
+                  <path
+                    d={`${path} L ${W - 10} ${H - 10} L 10 ${H - 10} Z`}
+                    fill="url(#areaGrad)"
+                    opacity=".5"
+                  />
+                )}
+
+                {/* ligne glow en dessous */}
+                <path d={path} stroke="#a78bfa" strokeWidth="10" opacity=".12" fill="none" />
+
+                {/* ligne animée (dash loop) */}
                 <path
                   d={path}
                   stroke="url(#lineGrad)"
                   strokeWidth="3"
                   fill="none"
-                  className="path-animate"
-                  style={{ strokeDasharray: 1000 }}
+                  style={{ strokeDasharray: 2000 }}
+                  className="animate-dashLoop"
                 />
 
-                {/* petits points */}
-                {DAILY.map((d, i) => {
-                  const v = d.messages;
-                  const max = Math.max(...DAILY.map((x) => x.messages));
-                  const min = Math.min(...DAILY.map((x) => x.messages));
+                {/* points lumineux */}
+                {DAILY.map((d, i, arr) => {
+                  const max = Math.max(...arr.map((x) => x.messages));
+                  const min = Math.min(...arr.map((x) => x.messages));
                   const span = Math.max(1, max - min);
-                  const step = (W - 20) / Math.max(1, DAILY.length - 1);
+                  const step = (W - 20) / Math.max(1, arr.length - 1);
                   const x = 10 + i * step;
-                  const t = (v - min) / span;
+                  const t = (d.messages - min) / span;
                   const y = Math.round(H - 10 - t * (H - 20));
-                  return <circle key={i} cx={x} cy={y} r="3" className="dot" fill="#a78bfa" />;
+                  return <circle key={i} cx={x} cy={y} r="3" fill="#a78bfa" className="drop-shadow-[0_0_12px_rgba(167,139,250,.55)]" />;
                 })}
               </svg>
+
+              {/* lueur animée par-dessus (shimmer) */}
+              <div className="pointer-events-none absolute inset-0 rounded-xl"
+                   style={{
+                     background:
+                       "linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent)",
+                   }}
+                   aria-hidden
+                   />
             </div>
           </div>
         </section>
 
-        {/* Droite : CHAT (petit en haut) + PLAYER (grand en bas) avec fallback Firefox */}
+        {/* Droite : CHAT (petit) + PLAYER (grand) */}
         <aside className="col-span-5 flex min-h-0 flex-col">
-          {/* CHAT */}
-          <div className="card p-2">
-            <SafeIframe
-              label="Chat"
-              className="w-full rounded-xl"
-              height={220}
-              src={`https://www.twitch.tv/embed/${channel}/chat?parent=${parent}`}
-              fallbackHref={`https://www.twitch.tv/popout/${channel}/chat?popout=`}
-            />
+          {/* Chat en haut, plus petit */}
+          <div className="card p-3">
+            <TwitchEmbed type="chat" channel={channel} parent={parent} height={240} />
           </div>
 
-          {/* PLAYER */}
-          <div className="card mt-6 p-2">
-            <SafeIframe
-              label="Lecteur"
-              className="w-full rounded-xl"
-              height={360}
-              src={`https://player.twitch.tv/?channel=${channel}&parent=${parent}&muted=true&autoplay=true`}
-              fallbackHref={`https://www.twitch.tv/${channel}`}
-            />
+          {/* Player plus grand, en bas */}
+          <div className="card mt-6 p-3">
+            <TwitchEmbed type="player" channel={channel} parent={parent} height={380} />
           </div>
         </aside>
       </main>
