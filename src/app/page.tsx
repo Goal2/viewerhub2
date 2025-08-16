@@ -1,92 +1,145 @@
-"use client";
 import Link from "next/link";
-import React from "react";
 
 const mock = {
-  pseudo: "nightowl",
-  screenTimeH: 37,     // heures de visionnage cette semaine
-  messages: 1294,      // messages envoyés
-  subMonths: 7,        // mois de sub
-  lastTip: 12,         // € dernier tip
-  streakDays: 9,       // jours d'affilée présents
+  messages14d: 12457,
+  avgPerDay: 889,
+  rank: 12,
+  hoursWatched: 42,
+  tipsTotal: 36,
+  subMonths: 8,
 };
+const mini = [760, 680, 820, 640, 620, 860, 910, 790, 840, 720, 960, 980, 610, 640];
+
+function MiniTrend({ w=320, h=90 }:{ w?:number; h?:number }) {
+  const pad = 8;
+  const max = Math.max(...mini), min = Math.min(...mini);
+  const span = Math.max(1, max - min);
+  const step = (w - pad*2) / (mini.length - 1);
+  const pts = mini.map((v,i)=>{
+    const t = (v - min) / span;
+    return [pad + i*step, Math.round(h - pad - t*(h - pad*2))] as const;
+  });
+  const d = pts.reduce((acc,[x,y],i)=>{
+    if(!i) return `M ${x} ${y}`;
+    const prev = pts[i-1];
+    const cx = (prev[0]+x)/2, cy = (prev[1]+y)/2;
+    return acc + ` Q ${prev[0]} ${prev[1]}, ${cx} ${cy} T ${x} ${y}`;
+  }, "");
+
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-[90px]">
+      <defs>
+        <linearGradient id="areaGrad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="rgba(167,139,250,.35)"/>
+          <stop offset="100%" stopColor="rgba(34,211,238,.05)"/>
+        </linearGradient>
+        <linearGradient id="lineGrad" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#a78bfa"/>
+          <stop offset="100%" stopColor="#22d3ee"/>
+        </linearGradient>
+      </defs>
+
+      {/* aire douce */}
+      {d && <path d={`${d} L ${w-pad} ${h-pad} L ${pad} ${h-pad} Z`} fill="url(#areaGrad)" opacity=".5" />}
+      {/* lueur discrète */}
+      <path d={d} stroke="#a78bfa" strokeWidth="8" opacity=".1" fill="none" />
+      {/* ligne nette */}
+      <path d={d} stroke="url(#lineGrad)" strokeWidth="2.5" fill="none" />
+      {/* points soft */}
+      {pts.map(([x,y],i)=><circle key={i} cx={x} cy={y} r="2.5" fill="#c4b5fd" className="animate-glowPulse" />)}
+    </svg>
+  );
+}
 
 export default function Home() {
   return (
-    <div className="relative grid h-screen grid-rows-[auto,1fr]">
-      {/* halos chill */}
+    <div className="relative min-h-screen">
+      {/* halos */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 top-10 h-[40rem] w-[40rem] rounded-full bg-gradient-to-tr from-fuchsia-600/25 via-purple-500/20 to-cyan-400/20 blur-3xl animate-floatA" />
-        <div className="absolute -right-40 bottom-10 h-[42rem] w-[42rem] rounded-full bg-gradient-to-tr from-cyan-400/20 via-teal-400/20 to-fuchsia-500/20 blur-3xl animate-floatB" />
-        <div className="absolute left-[40%] top-[45%] h-[36rem] w-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-tr from-violet-500/14 via-fuchsia-500/12 to-cyan-400/14 blur-3xl animate-floatC" />
+        <div className="absolute -left-48 top-10 h-[48rem] w-[48rem] rounded-full bg-gradient-to-tr from-fuchsia-600/30 via-purple-500/20 to-cyan-400/20 blur-3xl animate-floatA" />
+        <div className="absolute -right-52 bottom-12 h-[50rem] w-[50rem] rounded-full bg-gradient-to-tr from-cyan-400/25 via-teal-400/20 to-fuchsia-500/20 blur-3xl animate-floatB" />
+        <div className="absolute left-[42%] top-[44%] h-[38rem] w-[38rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-tr from-violet-500/18 via-fuchsia-500/14 to-cyan-400/16 blur-3xl animate-floatC" />
+        <div className="absolute left-1/2 bottom-[8%] h-[36rem] w-[36rem] -translate-x-1/2 rounded-full bg-gradient-to-tr from-fuchsia-500/14 via-indigo-500/10 to-cyan-400/12 blur-3xl animate-floatD" />
       </div>
 
-      <header className="relative z-10 px-6 py-4">
-        <div className="text-right text-sm text-white/70">style Twitch • chill</div>
-      </header>
-
-      <main className="relative z-10 mx-auto max-w-6xl space-y-6 px-6">
-        {/* hero */}
-        <div className="card shadow-glow p-6">
-          <h1 className="text-3xl font-bold">Bienvenue sur ViewerHub</h1>
-          <p className="mt-2 text-white/80">
-            Voici un aperçu de ce que tu verras en te connectant : ton temps d’écran, tes messages,
-            ton sub, et plus encore — le tout dans une interface inspirée de Twitch.
+      <div className="relative z-10 mx-auto max-w-6xl px-6 py-12">
+        {/* Hero */}
+        <section className="card p-8 md:p-10 shadow-glow">
+          <h1 className="text-3xl md:text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-[#9146ff] via-[#7c4dff] to-[#22d3ee]">
+            Bienvenue sur ViewerHub
+          </h1>
+          <p className="mt-2 text-white/80 max-w-2xl">
+            Connecte ton compte Twitch et découvre tes <span className="font-semibold">classements</span>,
+            ton <span className="font-semibold">activité de chat</span>, tes <span className="font-semibold">heures</span> devant le stream,
+            tes <span className="font-semibold">tips/subs</span>… le tout dans une interface inspirée de Twitch.
           </p>
 
-          <Link
-            href="/classements"
-            className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#8b5cf6] px-4 py-2 text-sm font-medium shadow-glow hover:opacity-95"
-          >
-            ⚡ Voir les classements
-          </Link>
-        </div>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link href="/api/auth/signin" className="btn-primary">
+              🚀 Se connecter avec Twitch
+            </Link>
+            <Link href="/classements" className="btn">
+              Explorer les classements
+            </Link>
+          </div>
+        </section>
 
-        {/* stats fictives */}
-        <section className="grid grid-cols-12 gap-6">
-          <div className="col-span-12 lg:col-span-4 card p-5">
-            <div className="text-sm text-white/60">Viewer fictif</div>
-            <div className="mt-1 text-xl font-semibold">@{mock.pseudo}</div>
-            <div className="mt-4 grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-3xl font-bold">{mock.screenTimeH}h</div>
-                <div className="text-sm text-white/60">Temps d’écran (7j)</div>
+        {/* Aperçu “ce que tu verras en te connectant” */}
+        <section className="mt-8 grid gap-6 md:grid-cols-5">
+          {/* KPI */}
+          <div className="card p-5 md:col-span-2">
+            <div className="text-sm text-white/60">Aperçu de tes stats (exemple)</div>
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs text-white/60">Messages / 14j</div>
+                <div className="text-xl font-bold">{mock.messages14d.toLocaleString("fr-FR")}</div>
               </div>
-              <div>
-                <div className="text-3xl font-bold">{mock.messages}</div>
-                <div className="text-sm text-white/60">Messages envoyés</div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs text-white/60">Moyenne / jour</div>
+                <div className="text-xl font-bold">{mock.avgPerDay.toLocaleString("fr-FR")}</div>
               </div>
-              <div>
-                <div className="text-3xl font-bold">{mock.subMonths}</div>
-                <div className="text-sm text-white/60">Mois de sub</div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs text-white/60">Heures vues</div>
+                <div className="text-xl font-bold">{mock.hoursWatched} h</div>
               </div>
-              <div>
-                <div className="text-3xl font-bold">{mock.lastTip}€</div>
-                <div className="text-sm text-white/60">Dernier tip</div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="text-xs text-white/60">Rang (mock)</div>
+                <div className="text-xl font-bold">#{mock.rank}</div>
+              </div>
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3 col-span-2">
+                <div className="text-xs text-white/60">Tips & Sub</div>
+                <div className="text-xl font-bold">{mock.tipsTotal} tips • {mock.subMonths} mois</div>
               </div>
             </div>
           </div>
 
-          {/* mini “ligne de progression” / streak */}
-          <div className="col-span-12 lg:col-span-8 card p-5">
-            <div className="mb-2 flex items-baseline justify-between">
-              <div className="font-semibold">Série de présence</div>
-              <div className="text-sm text-white/60">{mock.streakDays} jours d’affilée</div>
+          {/* mini Trend */}
+          <div className="card p-5 md:col-span-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="font-semibold">Ta tendance récente (exemple)</div>
+              <div className="text-xs text-white/60">Activité du chat</div>
             </div>
-
-            <div className="h-2 rounded bg-white/10">
-              <div
-                className="h-full rounded bg-gradient-to-r from-[#9146ff] via-[#7c4dff] to-[#22d3ee]"
-                style={{ width: `${Math.min(100, (mock.streakDays / 14) * 100)}%` }}
-              />
-            </div>
-
-            <p className="mt-3 text-sm text-white/70">
-              Connecte-toi pour voir tes vraies stats, ta progression, et tes badges.
+            <MiniTrend />
+            <p className="mt-2 text-xs text-white/60">
+              En te connectant, cette courbe sera basée sur tes vraies données.
             </p>
           </div>
         </section>
-      </main>
+
+        {/* Bénéfices */}
+        <section className="mt-8 grid gap-4 md:grid-cols-3">
+          {[
+            ["👑 Classements fun", "Compare-toi aux autres viewers : messages, tips et mois de sub."],
+            ["📈 Stats perso", "Historique, tendances, estimations de rang et objectifs."],
+            ["⚡ Temps réel", "Données actualisées très souvent, comme sur Twitch."],
+          ].map(([title,desc])=>(
+            <div key={title} className="card p-5">
+              <div className="text-lg font-semibold">{title}</div>
+              <p className="text-white/70">{desc}</p>
+            </div>
+          ))}
+        </section>
+      </div>
     </div>
   );
 }
