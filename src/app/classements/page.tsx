@@ -21,9 +21,13 @@ type Lb = { topChatters: Item[]; topDonors: Item[]; topSubs: Item[] };
 const fetcher = (u: string) => fetch(u).then((r) => r.json());
 const nf = new Intl.NumberFormat("fr-FR");
 
-const parent =
+const PARENT =
   process.env.NEXT_PUBLIC_TWITCH_PARENT?.trim() ||
   (typeof window !== "undefined" ? window.location.hostname : "localhost");
+
+const IS_FIREFOX =
+  typeof navigator !== "undefined" &&
+  /firefox/i.test(navigator.userAgent || "");
 
 /* ------------------------------------------------------------------ */
 /* Décor halo                                                          */
@@ -32,14 +36,14 @@ const parent =
 function HaloBackground() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="scene-halo absolute -left-40 -top-40 h-[38rem] w-[38rem] rounded-full bg-gradient-to-br from-[#7c3aed] via-[#9146ff] to-[#22d3ee] opacity-[.55]" />
-      <div className="scene-halo scene-halo--2 absolute -right-40 top-1/3 h-[36rem] w-[36rem] rounded-full bg-gradient-to-tr from-[#06b6d4] via-[#22d3ee] to-[#7c3aed] opacity-[.40]" />
+      <div className="scene-halo absolute -left-40 -top-40 h-[42rem] w-[42rem] rounded-full bg-gradient-to-br from-[#7c3aed] via-[#9146ff] to-[#22d3ee] opacity-[.55]" />
+      <div className="scene-halo scene-halo--2 absolute -right-40 top-1/3 h-[40rem] w-[40rem] rounded-full bg-gradient-to-tr from-[#06b6d4] via-[#22d3ee] to-[#7c3aed] opacity-[.42]" />
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Petits composants UI                                                */
+/* UI helpers                                                          */
 /* ------------------------------------------------------------------ */
 
 function CountUp({ value, duration = 900 }: { value: number; duration?: number }) {
@@ -66,14 +70,13 @@ function CountUp({ value, duration = 900 }: { value: number; duration?: number }
 
 function Medal({ rank }: { rank: number }) {
   return (
-    <div className="w-9 text-center text-lg">
+    <div className="w-10 text-center text-lg">
       {rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : rank}
     </div>
   );
 }
 
 function Avatar({ name }: { name: string }) {
-  // avatar léger (DiceBear)
   const url = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(
     name
   )}&backgroundType=gradientLinear&size=64`;
@@ -81,7 +84,7 @@ function Avatar({ name }: { name: string }) {
     <img
       src={url}
       alt={name}
-      className="h-7 w-7 rounded-full ring-2 ring-white/15 bg-white/5"
+      className="h-8 w-8 rounded-full ring-2 ring-white/15 bg-white/5"
       loading="lazy"
     />
   );
@@ -97,7 +100,7 @@ function KpiCard({
   suffix?: string;
 }) {
   return (
-    <div className="card">
+    <div className="card glass">
       <div className="p-5">
         <div className="text-[11px] uppercase tracking-widest text-white/60">
           {label}
@@ -106,12 +109,13 @@ function KpiCard({
           <CountUp value={value} /> {suffix}
         </div>
       </div>
+      <div className="accent" />
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Leaderboard                                                         */
+/* Leaderboard (look Twitch-like)                                      */
 /* ------------------------------------------------------------------ */
 
 function LeaderboardTable({
@@ -131,7 +135,7 @@ function LeaderboardTable({
   const max = Math.max(1, ...items.map((i) => i.value));
 
   return (
-    <div className="card overflow-hidden">
+    <div className="card glass overflow-hidden">
       <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4">
         <div className="text-lg font-semibold">{title}</div>
         <div className="ml-auto">
@@ -145,15 +149,13 @@ function LeaderboardTable({
       </div>
 
       {filtered.length === 0 ? (
-        <div className="p-6 text-sm text-white/70">
-          Aucune donnée pour le moment.
-        </div>
+        <div className="p-6 text-sm text-white/70">Aucune donnée pour le moment.</div>
       ) : (
-        <ul className="divide-y divide-white/10">
+        <ul className="divide-y divide-white/8">
           {filtered.map((i, idx) => {
             const pct = Math.max(2, Math.round((i.value / max) * 100));
             return (
-              <li key={i.name} className="px-4 py-3 hover:bg-white/[.04]">
+              <li key={i.name} className="px-4 py-3 hover:bg-white/[.035] transition">
                 <div className="flex items-center gap-3">
                   <Medal rank={idx + 1} />
                   <Avatar name={i.name} />
@@ -164,9 +166,9 @@ function LeaderboardTable({
                         {nf.format(i.value)} {unit}
                       </div>
                     </div>
-                    <div className="mt-2 h-2 rounded bg-white/10">
+                    <div className="mt-2 h-2 rounded bg-white/10 overflow-hidden">
                       <div
-                        className="h-full rounded bg-gradient-to-r from-[#9146ff] via-[#7c4dff] to-[#22d3ee]"
+                        className="h-full rounded bg-gradient-to-r from-[#8b5cf6] via-[#7c4dff] to-[#22d3ee]"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -177,12 +179,13 @@ function LeaderboardTable({
           })}
         </ul>
       )}
+      <div className="accent" />
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Graph                                                                */
+/* Graph (souple + dégradé + glow)                                     */
 /* ------------------------------------------------------------------ */
 
 function MiniAreaChart({
@@ -193,7 +196,7 @@ function MiniAreaChart({
   height?: number;
 }) {
   return (
-    <div className="card overflow-hidden">
+    <div className="card glass overflow-hidden">
       <div className="flex items-center justify-between px-5 pt-4">
         <div className="text-[13px] font-semibold">Tendance 14 jours</div>
         <div className="text-[11px] text-white/60">Activité du chat (mock)</div>
@@ -205,23 +208,20 @@ function MiniAreaChart({
             <AreaChart data={data}>
               <defs>
                 <linearGradient id="gradLine" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.85} />
-                  <stop offset="70%" stopColor="#22d3ee" stopOpacity={0.2} />
-                  <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.05} />
+                  <stop offset="0%" stopColor="#a78bfa" stopOpacity={0.9} />
+                  <stop offset="60%" stopColor="#22d3ee" stopOpacity={0.18} />
+                  <stop offset="100%" stopColor="#22d3ee" stopOpacity={0.06} />
                 </linearGradient>
               </defs>
-              <XAxis
-                dataKey="date"
-                hide
-                tick={{ fill: "rgba(255,255,255,.5)" }}
-              />
+              <XAxis dataKey="date" hide />
               <YAxis hide />
               <Tooltip
                 contentStyle={{
-                  background: "rgba(0,0,0,.7)",
+                  background: "rgba(17,17,22,.72)",
                   border: "1px solid rgba(255,255,255,.12)",
-                  borderRadius: 10,
-                  backdropFilter: "blur(6px)",
+                  borderRadius: 12,
+                  backdropFilter: "blur(8px)",
+                  color: "#fff",
                 }}
                 formatter={(v) => [nf.format(v as number), "msgs"]}
                 labelFormatter={(l) => `Jour : ${l}`}
@@ -229,8 +229,8 @@ function MiniAreaChart({
               <Area
                 type="monotone"
                 dataKey="messages"
-                stroke="#bdb4ff"
-                strokeWidth={2.5}
+                stroke="#c7b8ff"
+                strokeWidth={2.6}
                 dot={{ r: 3, strokeWidth: 0 }}
                 fill="url(#gradLine)"
                 animationDuration={900}
@@ -239,81 +239,114 @@ function MiniAreaChart({
           </ResponsiveContainer>
         </div>
       </div>
+      <div className="accent" />
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* Twitch player & chat avec fallback Firefox                          */
+/* Player + Chat visibles en même temps + mini-dock flottant           */
 /* ------------------------------------------------------------------ */
 
-function TwitchEmbedCard({
+function TwitchEmbed({
   kind,
   channel,
   height,
+  dark = true,
 }: {
   kind: "player" | "chat";
   channel: string;
   height: number;
+  dark?: boolean;
 }) {
-  const isFirefox =
-    typeof navigator !== "undefined" &&
-    /firefox/i.test(navigator.userAgent || "");
   const src =
     kind === "player"
-      ? `https://player.twitch.tv/?channel=${channel}&parent=${parent}&muted=false&autoplay=true`
-      : `https://www.twitch.tv/embed/${channel}/chat?parent=${parent}&theme=dark`;
+      ? `https://player.twitch.tv/?channel=${channel}&parent=${PARENT}&muted=false&autoplay=true`
+      : `https://www.twitch.tv/embed/${channel}/chat?parent=${PARENT}&theme=${dark ? "dark" : "light"}`;
 
-  if (!isFirefox) {
+  if (!IS_FIREFOX) {
     return (
-      <div className="card p-0 overflow-hidden">
-        <iframe
-          title={kind === "player" ? "twitch-player" : "twitch-chat"}
-          src={src}
-          height={height}
-          className="w-full bg-black"
-          allow={
-            kind === "player" ? "autoplay; fullscreen; picture-in-picture" : undefined
-          }
-        />
-      </div>
+      <iframe
+        title={kind}
+        src={src}
+        height={height}
+        className={`w-full ${kind === "player" ? "bg-black" : "bg-[#0b0b10]"}`}
+        allow={kind === "player" ? "autoplay; fullscreen; picture-in-picture" : undefined}
+      />
     );
   }
 
-  // Fallback Firefox : vignette live + boutons
+  // Fallback Firefox (blocage cookies tiers) : aperçu + bouton
   const thumb = `https://static-cdn.jtvnw.net/previews-ttv/live_user_${channel}-960x540.jpg?${Date.now()}`;
+  const label = kind === "player" ? "Ouvrir le lecteur" : "Ouvrir le chat";
+  const href = src;
+
   return (
-    <div className="card overflow-hidden p-0">
-      <div className="relative bg-black">
-        <img
-          src={thumb}
-          alt="Aperçu du live"
-          className="w-full object-cover"
-          style={{ height }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between gap-3">
-          <div className="rounded-md bg-red-500/90 px-2 py-1 text-xs font-semibold">
-            LIVE / Aperçu
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => location.reload()}
-              className="btn-secondary"
-            >
-              Actualiser
-            </button>
-            <a href={src} target="_blank" rel="noreferrer" className="btn-primary">
-              {kind === "player" ? "Ouvrir le lecteur" : "Ouvrir le chat"}
-            </a>
+    <div className="relative bg-black overflow-hidden rounded-xl border border-white/10">
+      {kind === "player" && (
+        <img src={thumb} className="w-full object-cover" style={{ height }} alt="Aperçu live" />
+      )}
+      {kind === "chat" && (
+        <div className="flex h-[280px] w-full items-center justify-center bg-[#0b0b10]">
+          <div className="text-sm text-white/70">Chat indisponible en iframe (Firefox)</div>
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+      <div className="absolute bottom-3 left-3">
+        <span className="rounded bg-red-500/90 px-2 py-0.5 text-xs font-semibold">LIVE</span>
+      </div>
+      <div className="absolute bottom-3 right-3">
+        <a href={href} target="_blank" rel="noreferrer" className="btn-primary">
+          {label}
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function LiveDock({ channel }: { channel: string }) {
+  const playerRef = useRef<HTMLDivElement>(null);
+  const [showMini, setShowMini] = useState(false);
+
+  useEffect(() => {
+    const el = playerRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const v = entries[0].isIntersecting;
+        setShowMini(!v);
+      },
+      { threshold: 0.15 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <>
+      {/* Bloc visible dans la mise en page (player + chat côte à côte) */}
+      <div className="card glass p-3">
+        <div className="relative rounded-xl bg-gradient-to-b from-white/5 to-white/[.03]">
+          <div className="dock grid-cols-[1fr_330px] lg:grid" ref={playerRef}>
+            <div className="rounded-xl overflow-hidden">
+              <TwitchEmbed kind="player" channel={channel} height={360} />
+            </div>
+            <div className="rounded-xl overflow-hidden border border-white/8 bg-[#0b0b10]">
+              <TwitchEmbed kind="chat" channel={channel} height={360} />
+            </div>
           </div>
         </div>
       </div>
-      <div className="p-3 text-xs text-white/70">
-        Firefox bloque parfois l’intégration. Ouvre l’onglet ci-dessus (ou
-        autorise les cookies tiers pour Twitch).
-      </div>
-    </div>
+
+      {/* Mini picture-in-picture flottant */}
+      {showMini && (
+        <div className="mini-dock">
+          <div className="rounded-xl overflow-hidden border border-white/10 shadow-2xl">
+            <TwitchEmbed kind="player" channel={channel} height={220} />
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -326,6 +359,7 @@ const MOCK_LB: Lb = {
     { name: "poneytv", value: 12931 },
     { name: "alice__", value: 11002 },
     { name: "bobinator", value: 9988 },
+    { name: "natsu", value: 7344 },
   ],
   topDonors: [
     { name: "superfan", value: 180 },
@@ -368,82 +402,46 @@ export default function ClassementsPage() {
     <div className="relative">
       <HaloBackground />
 
-      <div className="mb-6 space-y-2">
+      <div className="mb-6">
         <h1 className="text-3xl font-bold">Classements</h1>
         <p className="text-white/70 text-sm">
-          Messages, dons et mois de sub — en temps quasi réel (style Twitch).
+          Live + chat visibles, classements en temps quasi réel, style Twitch — et un mini-lecteur
+          flottant pour ne rien louper 🔥
         </p>
 
-        <div className="flex gap-2 pt-1">
-          <button
-            onClick={() => setTab("chat")}
-            className={`pill ${tab === "chat" ? "pill--active" : ""}`}
-          >
-            Top chatters
-          </button>
-          <button
-            onClick={() => setTab("tips")}
-            className={`pill ${tab === "tips" ? "pill--active" : ""}`}
-          >
-            Top dons (tips)
-          </button>
-          <button
-            onClick={() => setTab("subs")}
-            className={`pill ${tab === "subs" ? "pill--active" : ""}`}
-          >
-            Top subs (mois)
-          </button>
+        <div className="mt-3 flex gap-2">
+          <button onClick={() => setTab("chat")} className={`pill ${tab === "chat" ? "pill--active" : ""}`}>Top chatters</button>
+          <button onClick={() => setTab("tips")} className={`pill ${tab === "tips" ? "pill--active" : ""}`}>Top dons (tips)</button>
+          <button onClick={() => setTab("subs")} className={`pill ${tab === "subs" ? "pill--active" : ""}`}>Top subs (mois)</button>
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* KPI */}
       <div className="grid gap-4 md:grid-cols-3">
         <KpiCard label="TOTAL 14 JOURS" value={12640} suffix="msgs" />
         <KpiCard label="MOYENNE / JOUR" value={903} suffix="msgs" />
-        <div className="card">
+        <div className="card glass">
           <div className="p-5">
-            <div className="text-[11px] uppercase tracking-widest text-white/60">
-              MOCK RANG PERSO
-            </div>
-            <div className="mt-1.5 text-2xl font-bold">
-              #12 <span className="text-white/60 text-base">/ 3 214</span>
-            </div>
+            <div className="text-[11px] uppercase tracking-widest text-white/60">MOCK RANG PERSO</div>
+            <div className="mt-1.5 text-2xl font-bold">#12 <span className="text-white/60 text-base">/ 3 214</span></div>
           </div>
+          <div className="accent" />
         </div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {/* Bloc gauche : leaderboard + graph */}
         <div className="lg:col-span-2 space-y-6">
-          {tab === "chat" && (
-            <LeaderboardTable
-              title="Top chatters"
-              unit="msgs"
-              items={lb.topChatters}
-            />
-          )}
-          {tab === "tips" && (
-            <LeaderboardTable
-              title="Top dons (tips)"
-              unit="€"
-              items={lb.topDonors}
-            />
-          )}
-          {tab === "subs" && (
-            <LeaderboardTable
-              title="Top subs"
-              unit="mois"
-              items={lb.topSubs}
-            />
-          )}
+          {tab === "chat" && <LeaderboardTable title="Top chatters" unit="msgs" items={lb.topChatters} />}
+          {tab === "tips" && <LeaderboardTable title="Top dons (tips)" unit="€" items={lb.topDonors} />}
+          {tab === "subs" && <LeaderboardTable title="Top subs" unit="mois" items={lb.topSubs} />}
 
           <MiniAreaChart data={my.daily} height={240} />
         </div>
 
-        {/* Colonne droite : Player (grand) + Chat (plus petit) */}
+        {/* Colonne droite : Live + Chat côte à côte */}
         <div className="space-y-6">
-          <TwitchEmbedCard kind="player" channel="theaubeurre" height={320} />
-          <TwitchEmbedCard kind="chat" channel="theaubeurre" height={280} />
+          <LiveDock channel="theaubeurre" />
         </div>
       </div>
     </div>
