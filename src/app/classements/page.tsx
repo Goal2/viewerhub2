@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo, useState } from "react";
 
-/** ---------------- MOCKS ---------------- **/
+/** ---- MOCKS ---- **/
 type Item = { name: string; value: number };
 const TOP_CHATTERS: Item[] = [
   { name: "poneytv", value: 12931 },
@@ -13,7 +13,7 @@ const DAILY = Array.from({ length: 14 }).map((_, i) => {
   d.setDate(d.getDate() - (13 - i));
   return { date: d.toISOString().slice(0, 10), messages: Math.floor(600 + Math.random() * 700) };
 });
-/** ------------------------------------- **/
+/** -------------- **/
 
 const nf = new Intl.NumberFormat("fr-FR");
 const medal = (n: number) => (n === 1 ? "🥇" : n === 2 ? "🥈" : n === 3 ? "🥉" : "•");
@@ -41,8 +41,7 @@ export default function Page() {
 
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    const base = TOP_CHATTERS;
-    return !s ? base : base.filter((i) => i.name.toLowerCase().includes(s));
+    return !s ? TOP_CHATTERS : TOP_CHATTERS.filter((i) => i.name.toLowerCase().includes(s));
   }, [q]);
 
   const max = Math.max(1, ...TOP_CHATTERS.map((i) => i.value));
@@ -51,50 +50,34 @@ export default function Page() {
 
   return (
     <div className="relative grid h-screen grid-rows-[auto,1fr]">
-      {/* halos chill animés */}
+      {/* halos chill (3) */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-40 top-10 h-[40rem] w-[40rem] rounded-full bg-gradient-to-tr from-fuchsia-600/25 via-purple-500/20 to-cyan-400/20 blur-3xl animate-floatA" />
         <div className="absolute -right-40 bottom-10 h-[42rem] w-[42rem] rounded-full bg-gradient-to-tr from-cyan-400/20 via-teal-400/20 to-fuchsia-500/20 blur-3xl animate-floatB" />
+        <div className="absolute left-[40%] top-[45%] h-[36rem] w-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-tr from-violet-500/14 via-fuchsia-500/12 to-cyan-400/14 blur-3xl animate-floatC" />
       </div>
 
       {/* HEADER */}
       <header className="relative z-10 flex items-center gap-3 px-6 py-4">
         <button onClick={() => history.back()} className="btn">← Retour</button>
-
         <nav className="ml-1 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 p-1">
           <button className="rounded-xl bg-white/15 px-3 py-1.5 text-sm font-medium">Classements</button>
         </nav>
-
         <div className="ml-auto text-[15px] text-white/70">style Twitch • chill</div>
       </header>
 
       {/* CONTENU */}
       <main className="relative z-10 grid grid-cols-12 gap-6 px-6 pb-6">
-        {/* Colonne gauche : tableau + graph */}
+        {/* Gauche : table + graph */}
         <section className="col-span-7 flex flex-col">
           <div className="card shadow-glow">
             <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4">
               <div className="text-lg font-semibold">Top chatters</div>
 
               <div className="ml-auto flex gap-2">
-                <button
-                  onClick={() => setTab("chat")}
-                  className={`btn ${tab === "chat" ? "bg-white/15" : ""}`}
-                >
-                  Top chatters
-                </button>
-                <button
-                  onClick={() => setTab("tips")}
-                  className={`btn ${tab === "tips" ? "bg-white/15" : ""}`}
-                >
-                  Top dons (tips)
-                </button>
-                <button
-                  onClick={() => setTab("subs")}
-                  className={`btn ${tab === "subs" ? "bg-white/15" : ""}`}
-                >
-                  Top subs (mois)
-                </button>
+                <button onClick={() => setTab("chat")} className={`btn ${tab === "chat" ? "bg-white/15" : ""}`}>Top chatters</button>
+                <button onClick={() => setTab("tips")} className={`btn ${tab === "tips" ? "bg-white/15" : ""}`}>Top dons (tips)</button>
+                <button onClick={() => setTab("subs")} className={`btn ${tab === "subs" ? "bg-white/15" : ""}`}>Top subs (mois)</button>
               </div>
 
               <input
@@ -145,37 +128,28 @@ export default function Page() {
                 </linearGradient>
               </defs>
               <path d={path} stroke="url(#g)" strokeWidth="3" fill="none" />
-              {DAILY.map((d, i) => {
-                const vals = DAILY.map((x) => x.messages);
-                const max = Math.max(...vals);
-                const min = Math.min(...vals);
-                const span = Math.max(1, max - min);
-                const pad = 8;
-                const step = (W - pad * 2) / Math.max(1, vals.length - 1);
-                const x = Math.round(pad + i * step);
-                const t = (d.messages - min) / span;
-                const y = Math.round(H - pad - t * (H - pad * 2));
-                return <circle key={i} cx={x} cy={y} r="3" className="fill-[#a78bfa]" />;
-              })}
             </svg>
           </div>
         </section>
 
-        {/* Colonne droite : player + chat */}
+        {/* Droite : **chat plus petit en haut**, **live plus grand en bas** */}
         <aside className="col-span-5 flex min-h-0 flex-col">
+          {/* CHAT (plus petit) */}
           <div className="card p-2">
             <iframe
-              title="twitch-player"
-              className="h-[260px] w-full rounded-xl"
-              src={`https://player.twitch.tv/?channel=${channel}&parent=${parent}&muted=true&autoplay=true`}
-              allowFullScreen
+              title="twitch-chat"
+              className="h-[220px] w-full rounded-xl"
+              src={`https://www.twitch.tv/embed/${channel}/chat?parent=${parent}`}
             />
           </div>
-          <div className="card mt-6 flex-1 p-2">
+
+          {/* PLAYER (plus grand) */}
+          <div className="card mt-6 p-2">
             <iframe
-              title="twitch-chat"
-              className="h-full w-full rounded-xl"
-              src={`https://www.twitch.tv/embed/${channel}/chat?parent=${parent}`}
+              title="twitch-player"
+              className="h-[360px] w-full rounded-xl"
+              src={`https://player.twitch.tv/?channel=${channel}&parent=${parent}&muted=true&autoplay=true`}
+              allowFullScreen
             />
           </div>
         </aside>
