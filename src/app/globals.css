@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fond radials (doux) */
+/* fond de base */
 :root {
   --bg-grad-1: radial-gradient(1200px 600px at 20% 0%, rgba(147, 51, 234, .10), transparent 60%);
   --bg-grad-2: radial-gradient(1000px 500px at 120% 100%, rgba(34, 211, 238, .08), transparent 60%);
@@ -18,9 +18,12 @@ body {
   background-repeat: no-repeat;
   background-attachment: fixed;
 }
-
 .noscroll { height: 100vh; overflow: hidden; }
 
-/* petites utilitaires */
+/* helpers */
 .card { @apply rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm; }
 .btn  { @apply rounded-xl border border-white/15 bg-white/5 px-3 py-1.5 text-sm hover:bg-white/10; }
+
+/* SVG helpers */
+.path-animate { stroke-dasharray: 1000; animation: dash 2.4s ease-out forwards; }
+.dot { filter: drop-shadow(0 0 12px rgba(167,139,250,.55)); }
