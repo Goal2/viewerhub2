@@ -3,10 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 
-/* ------------------------------------------------------------------ */
-/* ---------------------------- MOCK DATA ---------------------------- */
-/* ------------------------------------------------------------------ */
-
 type Item = { name: string; value: number };
 type Lb = { topChatters: Item[]; topDonors: Item[]; topSubs: Item[] };
 
@@ -41,13 +37,13 @@ const DAILY = Array.from({ length: 14 }).map((_, i) => {
   };
 });
 
-/* ------------------------------------------------------------------ */
-/* ----------------------------- HELPERS ----------------------------- */
-/* ------------------------------------------------------------------ */
-
 const nf = new Intl.NumberFormat("fr-FR");
 
-/** Courbe souple type "cardinal spline" (lisse et sans animations agressives) */
+function medal(n: number) {
+  return n === 1 ? "🥇" : n === 2 ? "🥈" : n === 3 ? "🥉" : "🎖️";
+}
+
+/** Courbe cardinal lisse */
 function cardinalPath(values: number[], W: number, H: number, pad = 10, tension = 0.5) {
   const max = Math.max(...values);
   const min = Math.min(...values);
@@ -76,33 +72,13 @@ function cardinalPath(values: number[], W: number, H: number, pad = 10, tension 
   return d;
 }
 
-function medal(n: number) {
-  return n === 1 ? "🥇" : n === 2 ? "🥈" : n === 3 ? "🥉" : "🎖️";
-}
-
-const isFirefox =
-  typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent ?? "");
-
-/* ------------------------------------------------------------------ */
-/* ----------------------------- UI PARTS ---------------------------- */
-/* ------------------------------------------------------------------ */
-
-function LeaderboardTable({
-  title,
-  unit,
-  items,
-}: {
-  title: string;
-  unit: string;
-  items: Item[];
-}) {
+function LeaderboardTable({ title, unit, items }:{ title:string; unit:string; items:Item[] }) {
   const [q, setQ] = useState("");
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return !s ? items : items.filter((i) => i.name.toLowerCase().includes(s));
+    return !s ? items : items.filter(i => i.name.toLowerCase().includes(s));
   }, [q, items]);
-
-  const max = Math.max(1, ...items.map((i) => i.value));
+  const max = Math.max(1, ...items.map(i => i.value));
 
   return (
     <div className="card overflow-hidden">
@@ -111,13 +87,12 @@ function LeaderboardTable({
         <div className="ml-auto">
           <input
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e)=>setQ(e.target.value)}
             placeholder="Rechercher…"
             className="rounded-xl bg-black/30 border border-white/15 px-3 py-2 text-sm outline-none focus:border-white/30"
           />
         </div>
       </div>
-
       {filtered.length === 0 ? (
         <div className="p-6 text-white/70 text-sm">Aucune donnée pour le moment.</div>
       ) : (
@@ -131,15 +106,10 @@ function LeaderboardTable({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline justify-between gap-3">
                       <div className="truncate font-medium">{i.name}</div>
-                      <div className="text-white/70 text-sm">
-                        {nf.format(i.value)} {unit}
-                      </div>
+                      <div className="text-white/70 text-sm">{nf.format(i.value)} {unit}</div>
                     </div>
                     <div className="mt-2 h-2 rounded bg-white/10 overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-[#9146ff] via-[#7c4dff] to-[#22d3ee]"
-                        style={{ width: `${pct}%` }}
-                      />
+                      <div className="h-full bg-gradient-to-r from-[#9146ff] via-[#7c4dff] to-[#22d3ee]" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 </div>
@@ -152,86 +122,58 @@ function LeaderboardTable({
   );
 }
 
-function TwitchEmbedCard({
-  kind,
-  channel,
-  height,
-}: {
-  kind: "player" | "chat";
-  channel: string;
-  height: number;
-}) {
-  // liens de secours ouverts dans un nouvel onglet (utile sur Firefox)
-  const url =
-    kind === "player"
-      ? `https://player.twitch.tv/?channel=${channel}&parent=${process.env.NEXT_PUBLIC_TWITCH_PARENT || "localhost"}&muted=false&autoplay=true`
-      : `https://www.twitch.tv/embed/${channel}/chat?parent=${process.env.NEXT_PUBLIC_TWITCH_PARENT || "localhost"}&darkpopout`;
+function TwitchEmbedCard({ kind, channel, height }: { kind:"player"|"chat"; channel:string; height:number }) {
+  const isFirefox = typeof navigator !== "undefined" && /firefox/i.test(navigator.userAgent || "");
+  const parent = process.env.NEXT_PUBLIC_TWITCH_PARENT || "viewerhub2.vercel.app";
+  const url = kind === "player"
+    ? `https://player.twitch.tv/?channel=${channel}&parent=${parent}&muted=false&autoplay=true`
+    : `https://www.twitch.tv/embed/${channel}/chat?parent=${parent}&darkpopout`;
 
-  const openText = kind === "player" ? "Ouvrir Lecteur" : "Ouvrir Chat";
-  const title =
-    kind === "player" ? "Lecteur indisponible en iframe" : "Chat indisponible en iframe";
-  const explain =
-    "Firefox bloque parfois l’intégration. Ouvre-le dans un nouvel onglet (ou autorise les cookies tiers pour Twitch).";
-
-  return (
-    <div className="card p-0 overflow-hidden">
-      {!isFirefox ? (
-        kind === "player" ? (
-          <iframe
-            title="twitch-player"
-            src={url}
-            height={height}
-            className="w-full"
-            allow="autoplay; fullscreen; picture-in-picture"
-          />
+  if (!isFirefox) {
+    return (
+      <div className="card p-0 overflow-hidden">
+        {kind === "player" ? (
+          <iframe title="twitch-player" src={url} height={height} className="w-full" allow="autoplay; fullscreen; picture-in-picture" />
         ) : (
-          <iframe
-            title="twitch-chat"
-            src={url}
-            height={height}
-            className="w-full"
-          />
-        )
-      ) : (
-        <div className="p-8 text-center">
-          <div className="text-lg font-semibold mb-2">{title}</div>
-          <p className="text-white/70 max-w-xl mx-auto">{explain}</p>
-          <a href={url} target="_blank" rel="noreferrer" className="btn-primary mt-4">
-            {openText}
-          </a>
-        </div>
-      )}
+          <iframe title="twitch-chat" src={url} height={height} className="w-full" />
+        )}
+      </div>
+    );
+  }
+
+  // Fallback Firefox (cookies tiers bloqués)
+  return (
+    <div className="card p-8 text-center">
+      <div className="text-lg font-semibold mb-2">
+        {kind === "player" ? "Lecteur indisponible en iframe" : "Chat indisponible en iframe"}
+      </div>
+      <p className="text-white/70 max-w-xl mx-auto">
+        Firefox bloque parfois l’intégration. Ouvre-le dans un nouvel onglet (ou autorise les cookies tiers pour Twitch).
+      </p>
+      <a href={url} target="_blank" rel="noreferrer" className="btn-primary mt-4">
+        {kind === "player" ? "Ouvrir Lecteur" : "Ouvrir Chat"}
+      </a>
     </div>
   );
 }
-
-/* ------------------------------------------------------------------ */
-/* ---------------------------- MAIN PAGE --------------------------- */
-/* ------------------------------------------------------------------ */
 
 export default function ClassementsPage() {
   const [tab, setTab] = useState<"chat" | "tips" | "subs">("chat");
   const lb = MOCK_LB;
 
-  const W = 700;
-  const H = 160;
-  const path = useMemo(
-    () => cardinalPath(DAILY.map((d) => d.messages), W, H, 10, 0.55),
-    []
-  );
+  const W = 700, H = 160;
+  const path = useMemo(() => cardinalPath(DAILY.map(d => d.messages), W, H, 10, 0.55), []);
 
   return (
     <div className="relative">
-      {/* Back + header */}
+      {/* Head + retour */}
       <div className="mb-6 flex items-center justify-between gap-3">
-        <Link href="/" className="btn">
-          ← Retour
-        </Link>
+        <Link href="/" className="btn">← Retour</Link>
         <h1 className="text-2xl font-bold">Classements</h1>
         <div className="w-[92px]" />
       </div>
 
-      {/* Tabs */}
+      {/* Onglets */}
       <div className="card mb-5 px-2 py-2 inline-flex gap-2">
         {[
           ["chat", "Top chatters"],
@@ -242,12 +184,8 @@ export default function ClassementsPage() {
           return (
             <button
               key={k}
-              onClick={() => setTab(k as any)}
-              className={`px-3 py-1.5 rounded-xl border transition ${
-                active
-                  ? "bg-white/15 border-white/20"
-                  : "bg-white/5 border-white/10 hover:bg-white/10"
-              }`}
+              onClick={()=>setTab(k as any)}
+              className={`px-3 py-1.5 rounded-xl border transition ${active ? "bg-white/15 border-white/20" : "bg-white/5 border-white/10 hover:bg-white/10"}`}
             >
               {label}
             </button>
@@ -256,17 +194,11 @@ export default function ClassementsPage() {
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Colonne gauche : tableau de classement */}
+        {/* Colonne gauche : tableau + graphe */}
         <div className="lg:col-span-2">
-          {tab === "chat" && (
-            <LeaderboardTable title="Top chatters" unit="msgs" items={lb.topChatters} />
-          )}
-          {tab === "tips" && (
-            <LeaderboardTable title="Top dons (tips)" unit="€" items={lb.topDonors} />
-          )}
-          {tab === "subs" && (
-            <LeaderboardTable title="Top subs" unit="mois" items={lb.topSubs} />
-          )}
+          {tab === "chat" && <LeaderboardTable title="Top chatters" unit="msgs" items={lb.topChatters} />}
+          {tab === "tips" && <LeaderboardTable title="Top dons (tips)" unit="€" items={lb.topDonors} />}
+          {tab === "subs" && <LeaderboardTable title="Top subs" unit="mois" items={lb.topSubs} />}
 
           {/* Graphe doux */}
           <div className="card mt-6 p-4">
@@ -287,45 +219,26 @@ export default function ClassementsPage() {
                 </linearGradient>
               </defs>
 
-              {/* grille légère */}
-              {[0, 1, 2, 3].map((i) => (
-                <line
-                  key={i}
-                  x1="10"
-                  x2={W - 10}
-                  y1={10 + i * ((H - 20) / 3)}
-                  y2={10 + i * ((H - 20) / 3)}
-                  stroke="rgba(255,255,255,.08)"
-                  strokeWidth="1"
-                />
+              {[0,1,2,3].map(i=>(
+                <line key={i} x1="10" x2={W-10} y1={10 + i*((H-20)/3)} y2={10 + i*((H-20)/3)}
+                  stroke="rgba(255,255,255,.08)" strokeWidth="1" />
               ))}
 
-              {/* aire */}
               {path && (
-                <path
-                  d={`${path} L ${W - 10} ${H - 10} L 10 ${H - 10} Z`}
-                  fill="url(#areaGrad)"
-                  opacity=".5"
-                />
+                <path d={`${path} L ${W-10} ${H-10} L 10 ${H-10} Z`} fill="url(#areaGrad)" opacity=".5" />
               )}
-
-              {/* lueur discrète */}
               <path d={path} stroke="#a78bfa" strokeWidth="10" opacity=".12" fill="none" />
-              {/* ligne */}
               <path d={path} stroke="url(#lineGrad)" strokeWidth="3" fill="none" />
 
-              {/* points doux */}
               {DAILY.map((d, i, arr) => {
-                const max = Math.max(...arr.map((x) => x.messages));
-                const min = Math.min(...arr.map((x) => x.messages));
-                const span = Math.max(1, max - min);
-                const step = (W - 20) / Math.max(1, arr.length - 1);
+                const max = Math.max(...arr.map(x=>x.messages));
+                const min = Math.min(...arr.map(x=>x.messages));
+                const span = Math.max(1, max-min);
+                const step = (W-20)/Math.max(1, arr.length-1);
                 const x = 10 + i * step;
-                const t = (d.messages - min) / span;
-                const y = Math.round(H - 10 - t * (H - 20));
-                return (
-                  <circle key={i} cx={x} cy={y} r="3" fill="#c4b5fd" className="animate-glowPulse" />
-                );
+                const t = (d.messages-min)/span;
+                const y = Math.round(H-10 - t*(H-20));
+                return <circle key={i} cx={x} cy={y} r="3" fill="#c4b5fd" className="animate-glowPulse"/>;
               })}
             </svg>
           </div>
