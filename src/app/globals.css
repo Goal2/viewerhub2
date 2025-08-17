@@ -18,18 +18,12 @@
   --cyan: #22d3ee;
 }
 
-html, body{
-  height: 100%;
-  background: var(--bg);
-  color: var(--text);
-}
-
+html, body{ height: 100%; background: var(--bg); color: var(--text); }
 body{
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
 a{ color: inherit; text-decoration: none; }
 *{ -webkit-tap-highlight-color: transparent; }
 
@@ -41,74 +35,83 @@ a{ color: inherit; text-decoration: none; }
 }
 
 /* ------------------------------------------------------------------
-   HALOS — couche unique fixe (évite tout “carré” autour)
-   Place automatiquement au dessus du <body> dans layout.tsx
+   HALOS — une seule couche fixe (z-index:0) + bruit très léger
+   -> ajoute <div class="vh-halos"></div> dans layout.tsx (juste après <body>)
 ------------------------------------------------------------------ */
 .vh-halos{
   position: fixed;
-  inset: -30vmax;          /* déborde largement => pas de bord coupé */
+  inset: -40vmax;            /* déborde => jamais de bord visible */
   z-index: 0;
   pointer-events: none;
-  filter: blur(42px) saturate(120%);
+  filter: blur(46px) saturate(120%);
   opacity: .9;
 
-  /* positions animées via CSS variables */
-  --x1: 14%; --y1: 18%;
-  --x2: 86%; --y2: 22%;
-  --x3: 62%; --y3: 78%;
+  --x1: 16%; --y1: 20%;
+  --x2: 82%; --y2: 24%;
+  --x3: 58%; --y3: 78%;
 
   background:
-    radial-gradient(56vmax 56vmax at var(--x1) var(--y1),
-      color-mix(in oklab, var(--brand) 70%, transparent) 0%,
-      transparent 60%),
-    radial-gradient(64vmax 64vmax at var(--x2) var(--y2),
-      color-mix(in oklab, var(--cyan) 55%, transparent) 0%,
+    radial-gradient(60vmax 60vmax at var(--x1) var(--y1),
+      color-mix(in oklab, var(--brand) 72%, transparent) 0%,
+      transparent 58%),
+    radial-gradient(72vmax 72vmax at var(--x2) var(--y2),
+      color-mix(in oklab, var(--cyan) 58%, transparent) 0%,
       transparent 62%),
-    radial-gradient(48vmax 48vmax at var(--x3) var(--y3),
-      color-mix(in oklab, var(--brand2) 40%, transparent) 0%,
-      transparent 62%);
-
-  animation: vh-halos-drift 38s ease-in-out infinite alternate;
+    radial-gradient(52vmax 52vmax at var(--x3) var(--y3),
+      color-mix(in oklab, var(--brand2) 44%, transparent) 0%,
+      transparent 64%);
+  animation:
+    halos-drift 46s ease-in-out infinite alternate,
+    halos-breathe 12s ease-in-out infinite;
 }
 
-@keyframes vh-halos-drift {
-  0%   { --x1: 14%; --y1: 18%; --x2: 86%; --y2: 22%; --x3: 62%; --y3: 78%; }
-  40%  { --x1: 22%; --y1: 28%; --x2: 80%; --y2: 26%; --x3: 70%; --y3: 74%; }
-  70%  { --x1: 18%; --y1: 22%; --x2: 78%; --y2: 34%; --x3: 58%; --y3: 82%; }
-  100% { --x1: 26%; --y1: 16%; --x2: 74%; --y2: 20%; --x3: 64%; --y3: 68%; }
+/* léger grain très, très doux */
+.vh-halos::after{
+  content:"";
+  position: absolute; inset:-200%;
+  background:
+    radial-gradient(closest-side, rgba(255,255,255,.06), transparent 70%) 0 0/22px 22px,
+    radial-gradient(closest-side, rgba(0,0,0,.05), transparent 70%) 11px 11px/22px 22px;
+  filter: blur(6px);
+  opacity:.25;
+  animation: halos-grain 22s linear infinite;
 }
+
+@keyframes halos-drift{
+  0%   { --x1: 16%; --y1: 20%; --x2: 82%; --y2: 24%; --x3: 58%; --y3: 78%; }
+  35%  { --x1: 22%; --y1: 28%; --x2: 76%; --y2: 30%; --x3: 66%; --y3: 74%; }
+  70%  { --x1: 18%; --y1: 24%; --x2: 74%; --y2: 36%; --x3: 52%; --y3: 84%; }
+  100% { --x1: 26%; --y1: 18%; --x2: 70%; --y2: 22%; --x3: 60%; --y3: 68%; }
+}
+@keyframes halos-breathe{
+  0%,100%{ filter: blur(42px) saturate(115%); opacity:.88; }
+  50%    { filter: blur(54px) saturate(125%); opacity:.95; }
+}
+@keyframes halos-grain{ to { transform: translate3d(2%,1%,0); } }
 
 /* ------------------------------------------------------------------
-   “Glass panels” & borders (utilitaires réutilisables)
+   “Glass cards” & borders
 ------------------------------------------------------------------ */
 .glass{
   background:
-    radial-gradient(130% 140% at 0% 0%,
-      color-mix(in oklab, var(--brand) 16%, transparent), transparent 40%),
-    radial-gradient(130% 140% at 100% 0%,
-      color-mix(in oklab, var(--cyan) 12%, transparent), transparent 42%),
+    radial-gradient(140% 160% at 0% 0%,
+      color-mix(in oklab, var(--brand) 16%, transparent), transparent 42%),
+    radial-gradient(140% 160% at 100% 0%,
+      color-mix(in oklab, var(--cyan) 12%, transparent), transparent 44%),
     var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(5px);
 }
-
-.card-border{
-  position: relative;
-  border-radius: 16px;
-}
+.card-border{ position:relative; border-radius:16px; }
 .card-border::before{
-  content: "";
-  position: absolute; inset: 0;
-  border-radius: inherit;
-  padding: 1px;
+  content:""; position:absolute; inset:0; border-radius:inherit; padding:1px;
   background: linear-gradient(180deg,
     color-mix(in oklab, var(--brand) 50%, transparent),
     color-mix(in oklab, var(--cyan) 25%, transparent));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;    /* évide l'intérieur */
-  pointer-events: none;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude;
+  pointer-events:none;
 }
 
 /* ------------------------------------------------------------------
@@ -116,76 +119,60 @@ a{ color: inherit; text-decoration: none; }
 ------------------------------------------------------------------ */
 .pill-tabs{ display:flex; gap:.5rem; flex-wrap:wrap; }
 .pill-tab{
-  padding: .54rem .9rem;
-  border-radius: 9999px;
-  border: 1px solid var(--panel-border);
+  padding:.56rem .9rem; border-radius:9999px;
+  border:1px solid var(--panel-border);
   background: color-mix(in oklab, white 6%, transparent);
-  transition: .2s ease;
-  color: var(--text);
-  font-weight: 600;
+  transition:.2s ease; font-weight:600;
 }
-.pill-tab:hover{ background: color-mix(in oklab, white 10%, transparent); transform: translateY(-1px); }
-.pill-tab[aria-selected="true"],
-.pill-tab.is-active{
-  background: color-mix(in oklab, var(--brand) 20%, transparent);
+.pill-tab:hover{ background:color-mix(in oklab, white 10%, transparent); transform:translateY(-1px); }
+.pill-tab[aria-selected="true"], .pill-tab.is-active{
+  background: color-mix(in oklab, var(--brand) 18%, transparent);
   border-color: color-mix(in oklab, var(--brand) 50%, transparent);
   box-shadow: inset 0 0 0 4px color-mix(in oklab, var(--brand) 10%, transparent);
 }
 
 /* ------------------------------------------------------------------
-   Boutons
+   Buttons
 ------------------------------------------------------------------ */
 .btn{
-  display: inline-flex; align-items: center; gap: .5rem;
-  padding: .6rem 1rem;
-  border-radius: .75rem;
-  border: 1px solid var(--panel-border);
+  display:inline-flex; align-items:center; gap:.5rem;
+  padding:.6rem 1rem; border-radius:.75rem;
+  border:1px solid var(--panel-border);
   background: color-mix(in oklab, white 6%, transparent);
-  transition: .2s ease;
+  transition:.2s ease;
 }
-.btn:hover{ background: color-mix(in oklab, white 10%, transparent); transform: translateY(-1px); }
+.btn:hover{ background:color-mix(in oklab, white 10%, transparent); transform:translateY(-1px); }
 
 .btn-primary{
+  color:#fff; border-color:transparent;
   background: linear-gradient(90deg, var(--brand), var(--brand2) 45%, var(--cyan));
-  border-color: transparent;
-  color: #fff;
   box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--brand) 45%, transparent);
 }
-.btn-primary:hover{ filter: brightness(1.05); transform: translateY(-1px); }
-
-.btn-ghost{
-  background: transparent;
-  border-color: var(--panel-border);
-}
+.btn-primary:hover{ filter:brightness(1.05); transform:translateY(-1px); }
 
 /* ------------------------------------------------------------------
    Chips / badges
 ------------------------------------------------------------------ */
 .chip-live{
   display:inline-flex; align-items:center; gap:.35rem;
-  background: #ef4444; color:#fff; font-weight: 700;
-  font-size: .72rem; padding: .22rem .5rem; border-radius: .5rem;
-  letter-spacing: .02em;
+  background:#ef4444; color:#fff; font-weight:700; font-size:.72rem;
+  padding:.22rem .5rem; border-radius:.5rem; letter-spacing:.02em;
 }
+.chip-off{ display:inline-flex; align-items:center; gap:.35rem;
+  background:rgba(255,255,255,.08); padding:.22rem .5rem; border-radius:.5rem; }
 
 /* ------------------------------------------------------------------
-   Graph / Recharts retouches (si utilisés)
+   Graph — lissage
 ------------------------------------------------------------------ */
 .recharts-cartesian-grid-horizontal line,
-.recharts-cartesian-grid-vertical line{
-  stroke: rgba(255,255,255,.06) !important;
-}
-.recharts-line-curve,
-.recharts-line path{
-  stroke-linecap: round !important;
-  stroke-linejoin: round !important;
-}
+.recharts-cartesian-grid-vertical line{ stroke:rgba(255,255,255,.06)!important; }
+.recharts-line-curve, .recharts-line path{ stroke-linecap:round!important; stroke-linejoin:round!important; }
 .recharts-dot, .recharts-active-dot circle{
   filter: drop-shadow(0 0 8px color-mix(in oklab, var(--brand) 50%, transparent));
 }
 
 /* ------------------------------------------------------------------
-   Embeds Twitch (fallback sombre quand iFrame bloquée)
+   Embeds Twitch (fallback sombre iFrame)
 ------------------------------------------------------------------ */
 .twitch-embed-dark{
   background: rgba(17,20,28,.88);
@@ -193,15 +180,8 @@ a{ color: inherit; text-decoration: none; }
   border-radius: .75rem;
 }
 
-/* ------------------------------------------------------------------
-   Petits helpers
------------------------------------------------------------------- */
-.shadow-glow{
-  box-shadow: 0 0 30px color-mix(in oklab, var(--brand) 35%, transparent);
-}
+/* Helpers */
 .text-gradient{
   background: linear-gradient(90deg, var(--brand), var(--cyan));
-  -webkit-background-clip: text;
-          background-clip: text;
-  -webkit-text-fill-color: transparent;
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
 }
