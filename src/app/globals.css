@@ -1,84 +1,207 @@
+/* ------------------------------------------------------------------
+   Tailwind
+------------------------------------------------------------------ */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* --------------------------------------------- */
-/* Fond & typographie                            */
-/* --------------------------------------------- */
-
-:root { color-scheme: dark; }
-html, body { height: 100%; }
-
-body {
-  background:
-    radial-gradient(1200px 600px at 20% -20%, rgba(124,58,237,.18), transparent 60%),
-    radial-gradient(900px 520px at 110% 50%, rgba(6,182,212,.12), transparent 60%),
-    radial-gradient(700px 460px at 50% 120%, rgba(34,211,238,.10), transparent 60%),
-    #0b0b10;
-  color: #fff;
+/* ------------------------------------------------------------------
+   Variables & base
+------------------------------------------------------------------ */
+:root{
+  --bg: #0a0c10;
+  --text: #e5e7eb;
+  --panel: rgba(255,255,255,.04);
+  --panel-border: rgba(255,255,255,.10);
+  --brand: #9146ff;          /* violet Twitch-like */
+  --brand2: #7c4dff;
+  --cyan: #22d3ee;
 }
 
-/* --------------------------------------------- */
-/* Composants utilitaires                         */
-/* --------------------------------------------- */
-
-.card {
-  @apply rounded-2xl border border-white/10 bg-white/5;
-  box-shadow: 0 10px 35px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
-}
-.glass { backdrop-filter: blur(8px); }
-
-.input {
-  @apply rounded-xl bg-black/30 border border-white/15 px-3 py-2 text-sm outline-none focus:border-white/35;
+html, body{
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
 }
 
-.btn-primary {
-  @apply rounded-lg bg-[#7c3aed] px-3.5 py-2 text-sm font-medium hover:bg-[#6d28d9] transition-colors;
-  box-shadow: 0 6px 18px rgba(124,58,237,.35);
-}
-.btn-secondary {
-  @apply rounded-lg border border-white/15 bg-white/10 px-3.5 py-2 text-sm hover:bg-white/15;
+body{
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-.pill {
-  @apply rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white/80 hover:bg-white/10 transition-colors;
-}
-.pill--active { @apply border-white/20 bg-white/15 text-white; }
+a{ color: inherit; text-decoration: none; }
+*{ -webkit-tap-highlight-color: transparent; }
 
-.accent {
-  height: 3px;
-  background: linear-gradient(90deg, #7c3aed, #9146ff, #22d3ee);
-  opacity: .5;
-  border-bottom-left-radius: 12px;
-  border-bottom-right-radius: 12px;
+/* Focus visible “soft” */
+:focus-visible{
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 45%, transparent);
+  border-radius: .75rem;
 }
 
-/* --------------------------------------------- */
-/* Halos chill                                    */
-/* --------------------------------------------- */
-.scene-halo { filter: blur(64px); animation: haloDrift 26s ease-in-out infinite; }
-.scene-halo--2 { animation-duration: 34s; animation-delay: -6s; }
-
-@keyframes haloDrift {
-  0%, 100% { transform: translate(-6%, -4%) scale(1.00); }
-  50%      { transform: translate(8%, 6%)   scale(1.07); }
-}
-
-/* --------------------------------------------- */
-/* Dock (player + chat) & mini PiP                */
-/* --------------------------------------------- */
-.dock { display: grid; gap: .75rem; }
-.mini-dock {
+/* ------------------------------------------------------------------
+   HALOS — couche unique fixe (évite tout “carré” autour)
+   Place automatiquement au dessus du <body> dans layout.tsx
+------------------------------------------------------------------ */
+.vh-halos{
   position: fixed;
-  right: 18px;
-  bottom: 18px;
-  z-index: 70;
-  width: 360px;
-  max-width: calc(100vw - 24px);
-  transition: transform .25s ease, opacity .25s ease;
-  animation: pop .18s ease;
-}
-@keyframes pop { from { transform: translateY(12px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  inset: -30vmax;          /* déborde largement => pas de bord coupé */
+  z-index: 0;
+  pointer-events: none;
+  filter: blur(42px) saturate(120%);
+  opacity: .9;
 
-/* Recharts tooltip lisible sur fond glass */
-.recharts-default-tooltip { backdrop-filter: blur(6px); }
+  /* positions animées via CSS variables */
+  --x1: 14%; --y1: 18%;
+  --x2: 86%; --y2: 22%;
+  --x3: 62%; --y3: 78%;
+
+  background:
+    radial-gradient(56vmax 56vmax at var(--x1) var(--y1),
+      color-mix(in oklab, var(--brand) 70%, transparent) 0%,
+      transparent 60%),
+    radial-gradient(64vmax 64vmax at var(--x2) var(--y2),
+      color-mix(in oklab, var(--cyan) 55%, transparent) 0%,
+      transparent 62%),
+    radial-gradient(48vmax 48vmax at var(--x3) var(--y3),
+      color-mix(in oklab, var(--brand2) 40%, transparent) 0%,
+      transparent 62%);
+
+  animation: vh-halos-drift 38s ease-in-out infinite alternate;
+}
+
+@keyframes vh-halos-drift {
+  0%   { --x1: 14%; --y1: 18%; --x2: 86%; --y2: 22%; --x3: 62%; --y3: 78%; }
+  40%  { --x1: 22%; --y1: 28%; --x2: 80%; --y2: 26%; --x3: 70%; --y3: 74%; }
+  70%  { --x1: 18%; --y1: 22%; --x2: 78%; --y2: 34%; --x3: 58%; --y3: 82%; }
+  100% { --x1: 26%; --y1: 16%; --x2: 74%; --y2: 20%; --x3: 64%; --y3: 68%; }
+}
+
+/* ------------------------------------------------------------------
+   “Glass panels” & borders (utilitaires réutilisables)
+------------------------------------------------------------------ */
+.glass{
+  background:
+    radial-gradient(130% 140% at 0% 0%,
+      color-mix(in oklab, var(--brand) 16%, transparent), transparent 40%),
+    radial-gradient(130% 140% at 100% 0%,
+      color-mix(in oklab, var(--cyan) 12%, transparent), transparent 42%),
+    var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  backdrop-filter: blur(4px);
+}
+
+.card-border{
+  position: relative;
+  border-radius: 16px;
+}
+.card-border::before{
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(180deg,
+    color-mix(in oklab, var(--brand) 50%, transparent),
+    color-mix(in oklab, var(--cyan) 25%, transparent));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;    /* évide l'intérieur */
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------
+   Onglets “pill”
+------------------------------------------------------------------ */
+.pill-tabs{ display:flex; gap:.5rem; flex-wrap:wrap; }
+.pill-tab{
+  padding: .54rem .9rem;
+  border-radius: 9999px;
+  border: 1px solid var(--panel-border);
+  background: color-mix(in oklab, white 6%, transparent);
+  transition: .2s ease;
+  color: var(--text);
+  font-weight: 600;
+}
+.pill-tab:hover{ background: color-mix(in oklab, white 10%, transparent); transform: translateY(-1px); }
+.pill-tab[aria-selected="true"],
+.pill-tab.is-active{
+  background: color-mix(in oklab, var(--brand) 20%, transparent);
+  border-color: color-mix(in oklab, var(--brand) 50%, transparent);
+  box-shadow: inset 0 0 0 4px color-mix(in oklab, var(--brand) 10%, transparent);
+}
+
+/* ------------------------------------------------------------------
+   Boutons
+------------------------------------------------------------------ */
+.btn{
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .6rem 1rem;
+  border-radius: .75rem;
+  border: 1px solid var(--panel-border);
+  background: color-mix(in oklab, white 6%, transparent);
+  transition: .2s ease;
+}
+.btn:hover{ background: color-mix(in oklab, white 10%, transparent); transform: translateY(-1px); }
+
+.btn-primary{
+  background: linear-gradient(90deg, var(--brand), var(--brand2) 45%, var(--cyan));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 10px 30px -12px color-mix(in oklab, var(--brand) 45%, transparent);
+}
+.btn-primary:hover{ filter: brightness(1.05); transform: translateY(-1px); }
+
+.btn-ghost{
+  background: transparent;
+  border-color: var(--panel-border);
+}
+
+/* ------------------------------------------------------------------
+   Chips / badges
+------------------------------------------------------------------ */
+.chip-live{
+  display:inline-flex; align-items:center; gap:.35rem;
+  background: #ef4444; color:#fff; font-weight: 700;
+  font-size: .72rem; padding: .22rem .5rem; border-radius: .5rem;
+  letter-spacing: .02em;
+}
+
+/* ------------------------------------------------------------------
+   Graph / Recharts retouches (si utilisés)
+------------------------------------------------------------------ */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line{
+  stroke: rgba(255,255,255,.06) !important;
+}
+.recharts-line-curve,
+.recharts-line path{
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+}
+.recharts-dot, .recharts-active-dot circle{
+  filter: drop-shadow(0 0 8px color-mix(in oklab, var(--brand) 50%, transparent));
+}
+
+/* ------------------------------------------------------------------
+   Embeds Twitch (fallback sombre quand iFrame bloquée)
+------------------------------------------------------------------ */
+.twitch-embed-dark{
+  background: rgba(17,20,28,.88);
+  border: 1px solid var(--panel-border);
+  border-radius: .75rem;
+}
+
+/* ------------------------------------------------------------------
+   Petits helpers
+------------------------------------------------------------------ */
+.shadow-glow{
+  box-shadow: 0 0 30px color-mix(in oklab, var(--brand) 35%, transparent);
+}
+.text-gradient{
+  background: linear-gradient(90deg, var(--brand), var(--cyan));
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
