@@ -21,10 +21,12 @@ export default function RootLayout({
       <body
         className={`${inter.className} bg-[#0a0c10] text-slate-100 overflow-x-hidden antialiased`}
       >
-        {/* Couche de halos – FIXE et hors des conteneurs */}
-        <div className="vh-halos" aria-hidden />
+        {/* Halos fixes – sous tout le contenu */}
+        <div className="vh-halos" aria-hidden>
+          <div className="halo-layer" />
+        </div>
 
-        {/* Tout le contenu de l'app au-dessus des halos */}
+        {/* Contenu */}
         <div className="relative z-10 min-h-screen">{children}</div>
       </body>
     </html>
