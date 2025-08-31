@@ -1,18 +1,209 @@
-// src/app/classements/page.tsx
 "use client";
 
 import useSWR from "swr";
 import { useMemo, useState } from "react";
-import MiniTrend from "@/components/MiniTrend";
-
-// --------- helpers ----------
-const fetcher = (u: string) => fetch(u).then((r) => r.json());
-const nf = new Intl.NumberFormat("fr-FR");
-const medal = (n: number) => (n === 1 ? "🥇" : n === 2 ? "🥈" : n === 3 ? "🥉" : "◦");
 
 type Item = { name: string; value: number };
 type Lb = { topChatters: Item[]; topDonors: Item[]; topSubs: Item[] };
 
+const fetcher = (u: string) => fetch(u).then((r) => r.json());
+const nf = new Intl.NumberFormat("fr-FR");
+
+/* ---------- mini chart (identique visuel base) ---------- */
+const TREND = [13, 7, 12, 4, 10, 8, 11, 6, 9];
+
+function TrendCard() {
+  const pad = 20,
+    width = 520,
+    height = 260;
+  const w = width - pad * 2;
+  const h = height - pad * 2;
+
+  const pts = useMemo(() => {
+    const max = Math.max(...TREND, 1);
+    const step = w / Math.max(TREND.length - 1, 1);
+    return TREND.map((v, i) => ({
+      x: pad + i * step,
+      y: pad + h - (v / max) * h,
+    }));
+  }, [w, h]);
+
+  const d = useMemo(() => {
+    if (pts.length < 2) return "";
+    const out: string[] = [];
+    pts.forEach((p, i) => {
+      if (!i) out.push(`M ${p.x},${p.y}`);
+      else {
+        const p0 = pts[i - 1];
+        const cx1 = p0.x + (p.x - p0.x) / 2;
+        const cy1 = p0.y;
+        const cx2 = p0.x + (p.x - p0.x) / 2;
+        const cy2 = p.y;
+        out.push(`C ${cx1},${cy1} ${cx2},${cy2} ${p.x},${p.y}`);
+      }
+    });
+    return out.join(" ");
+  }, [pts]);
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+      <div className="mb-2 flex items-end justify-between">
+        <div className="text-sm font-medium">Tendance 14 jours</div>
+        <div className="text-xs text-white/50">Activité du chat (mock)</div>
+      </div>
+      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-[240px]">
+        <defs>
+          <linearGradient id="gLine" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0%" stopColor="#a78bfa" />
+            <stop offset="100%" stopColor="#22d3ee" />
+          </linearGradient>
+          <linearGradient id="gFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#a78bfa" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#22d3ee" stopOpacity="0.03" />
+          </linearGradient>
+          <linearGradient id="gGrid" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#94a3b8" stopOpacity="0.15" />
+            <stop offset="100%" stopColor="#94a3b8" stopOpacity="0.05" />
+          </linearGradient>
+        </defs>
+        <g opacity={0.25}>
+          {[0, 1, 2, 3].map((i) => (
+            <line
+              key={`h${i}`}
+              x1={pad}
+              x2={width - pad}
+              y1={pad + ((height - pad * 2) / 4) * i}
+              y2={pad + ((height - pad * 2) / 4) * i}
+              stroke="url(#gGrid)"
+            />
+          ))}
+          {[0, 1, 2, 3, 4, 5].map((i) => (
+            <line
+              key={`v${i}`}
+              y1={pad}
+              y2={height - pad}
+              x1={pad + ((width - pad * 2) / 5) * i}
+              x2={pad + ((width - pad * 2) / 5) * i}
+              stroke="url(#gGrid)"
+            />
+          ))}
+        </g>
+        <path
+          d={`${d} L ${width - pad},${height - pad} L ${pad},${height - pad} Z`}
+          fill="url(#gFill)"
+        />
+        <path d={d} fill="none" stroke="url(#gLine)" strokeWidth={3} />
+      </svg>
+    </div>
+  );
+}
+
+/* ---------- live card compacte ---------- */
+function LiveCardCompact() {
+  const { data } = useSWR<{ online: boolean; title?: string; game?: string }>(
+    "/api/twitch/stream?channel=theaubeurre",
+    fetcher,
+    { refreshInterval: 30000 }
+  );
+  const parent =
+    process.env.NEXT_PUBLIC_TWITCH_PARENT || "viewerhub2.vercel.app";
+  const online = data?.online;
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/30">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <div className="text-sm font-medium">Stream @theaubeurre</div>
+        <div className="text-[11px] flex items-center gap-2 text-white/70">
+          <span
+            className={`inline-block h-2.5 w-2.5 rounded-full ${
+              online ? "bg-emerald-400" : "bg-slate-400"
+            }`}
+          />
+          {online ? "En ligne" : "Hors ligne"}
+        </div>
+      </div>
+      <div className="p-3">
+        <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-slate-900">
+          <iframe
+            className="absolute inset-0 h-full w-full"
+            src={`https://player.twitch.tv/?channel=theaubeurre&parent=${parent}&muted=true&autoplay=true`}
+            allow="autoplay; picture-in-picture; encrypted-media"
+            allowFullScreen
+          />
+        </div>
+        {data?.title && (
+          <div className="mt-2 line-clamp-1 text-xs text-white/70">
+            {data.title}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ---------- listes compactes ---------- */
+function CompactList({
+  title,
+  unit,
+  items,
+}: {
+  title: string;
+  unit: string;
+  items: Item[];
+}) {
+  const [q, setQ] = useState("");
+  const filtered = useMemo(() => {
+    const s = q.trim().toLowerCase();
+    return s ? items.filter((i) => i.name.toLowerCase().includes(s)) : items;
+  }, [q, items]);
+  const max = Math.max(1, ...items.map((i) => i.value));
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/30">
+      <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10">
+        <div className="text-sm font-medium">{title}</div>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Rechercher…"
+          className="w-48 rounded-lg bg-black/30 px-3 py-1.5 text-sm outline-none border border-white/10 focus:border-white/30"
+        />
+      </div>
+      <ul className="p-2">
+        {filtered.map((i, idx) => {
+          const pct = Math.max(2, Math.round((i.value / max) * 100));
+          return (
+            <li
+              key={i.name}
+              className="rounded-md px-3 py-2 hover:bg-white/[.04] transition"
+            >
+              <div className="flex items-center justify-between text-sm">
+                <div className="truncate">
+                  <span className="mr-2 text-white/60">#{idx + 1}</span>
+                  {i.name}
+                </div>
+                <div className="text-white/60">
+                  {nf.format(i.value)} {unit}
+                </div>
+              </div>
+              <div className="mt-1.5 h-1.5 rounded bg-white/10 overflow-hidden">
+                <div
+                  className="h-full rounded bg-gradient-to-r from-[#8b5cf6] to-[#22d3ee]"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </li>
+          );
+        })}
+        {filtered.length === 0 && (
+          <li className="px-3 py-2 text-sm text-white/60">Aucun résultat.</li>
+        )}
+      </ul>
+    </div>
+  );
+}
+
+/* ---------- données mock fallback ---------- */
 const MOCK_LB: Lb = {
   topChatters: [
     { name: "poneytv", value: 12931 },
@@ -20,224 +211,62 @@ const MOCK_LB: Lb = {
     { name: "bobinator", value: 9988 },
   ],
   topDonors: [
-    { name: "superfan", value: 180 },
-    { name: "natsu", value: 120 },
-    { name: "sora", value: 95 },
+    { name: "kind_whale", value: 420.5 },
+    { name: "alice__", value: 180 },
   ],
   topSubs: [
-    { name: "neo", value: 36 },
-    { name: "jin", value: 20 },
-    { name: "ayan", value: 14 },
+    { name: "poneytv", value: 28 },
+    { name: "luna", value: 21 },
   ],
 };
 
-const MOCK_ME = {
-  daily: Array.from({ length: 14 }).map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (13 - i));
-    const date = d.toISOString().slice(0, 10);
-    return { date, messages: Math.floor(40 + Math.random() * 120) };
-  }),
-};
-
-// ---------- UI blocks ----------
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div
-      className={
-        "rounded-2xl border border-white/10 bg-white/[.03] backdrop-blur-sm " +
-        "shadow-[0_0_0_1px_rgba(255,255,255,.02)_inset,0_40px_120px_-40px_rgba(0,0,0,.4)] " +
-        className
-      }
-    >
-      {children}
-    </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <Card className="p-5">
-      <div className="text-[10px] uppercase tracking-[.14em] text-white/55">{label}</div>
-      <div className="mt-2 text-3xl font-semibold">{value}</div>
-    </Card>
-  );
-}
-
-// — Stream status + mini viewer (fenêtre) —
-function StreamCard({ channel = "theaubeurre" }: { channel?: string }) {
-  const { data } = useSWR<{ live: boolean; title?: string; viewer_count?: number }>(
-    `/api/twitch/stream?user_login=${channel}`,
-    fetcher,
-    { refreshInterval: 30000 }
-  );
-
-  const parent =
-    process.env.NEXT_PUBLIC_TWITCH_PARENT ||
-    (typeof window !== "undefined" ? window.location.hostname : "localhost");
-
-  const embedUrl = `https://player.twitch.tv/?channel=${channel}&parent=${parent}&muted=true&autoplay=true`;
-
-  const pill = (
-    <span
-      className={
-        "inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs " +
-        (data?.live
-          ? "bg-green-500/15 text-green-300"
-          : "bg-white/10 text-white/70")
-      }
-    >
-      <span className={"h-2 w-2 rounded-full " + (data?.live ? "bg-green-400" : "bg-white/40")} />
-      {data?.live ? "En ligne" : "Hors ligne"}
-    </span>
-  );
-
-  return (
-    <Card className="p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="font-medium">Stream <span className="text-white/70">@{channel}</span></div>
-        {pill}
-      </div>
-
-      {/* Fenêtre : iframe si possible, sinon note + bouton d’ouverture */}
-      <div className="overflow-hidden rounded-xl border border-white/10 bg-black/50">
-        <iframe
-          key={embedUrl}
-          src={embedUrl}
-          height={220}
-          className="h-[220px] w-full"
-          allowFullScreen
-        />
-      </div>
-
-      {!data?.live && (
-        <div className="mt-3 text-xs text-white/60">
-          Hors ligne pour le moment.
-        </div>
-      )}
-    </Card>
-  );
-}
-
-// — Top list (sobre)
-function TopList({
-  title,
-  items,
-  unit,
-  withSearch,
-}: {
-  title: string;
-  items: Item[];
-  unit: string;
-  withSearch?: boolean;
-}) {
-  const [q, setQ] = useState("");
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
-    return !s ? items : items.filter((i) => i.name.toLowerCase().includes(s));
-  }, [q, items]);
-
-  const max = Math.max(1, ...items.map((i) => i.value));
-
-  return (
-    <Card className="p-4">
-      <div className="mb-3 flex items-center gap-3">
-        <div className="text-sm font-semibold">{title}</div>
-        {withSearch && (
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Rechercher…"
-            className="ml-auto rounded-xl bg-black/30 px-3 py-1.5 text-sm outline-none ring-1 ring-white/10 focus:ring-white/20"
-          />
-        )}
-      </div>
-
-      <ul className="space-y-2">
-        {filtered.map((i, idx) => {
-          const pct = Math.max(3, Math.round((i.value / max) * 100));
-          return (
-            <li
-              key={i.name}
-              className="rounded-xl border border-white/5 bg-white/[.02] p-3"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-6 text-center">{medal(idx + 1)}</div>
-                <div className="flex-1">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <div className="truncate">{i.name}</div>
-                    <div className="text-xs text-white/60">
-                      {nf.format(i.value)} {unit}
-                    </div>
-                  </div>
-                  <div className="mt-2 h-1.5 rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-[#9146ff] via-[#7c4dff] to-[#22d3ee]"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </Card>
-  );
-}
-
-// --------- page ----------
+/* ---------- page ---------- */
 export default function ClassementsPage() {
-  // données leaderboard (toujours fallback sur MOCK_)
-  const { data } = useSWR<Lb>("/api/leaderboards?mock=1", fetcher, { refreshInterval: 20000 });
+  const { data } = useSWR<Lb>("/api/leaderboards?mock=1", fetcher, {
+    refreshInterval: 20000,
+  });
   const lb = data ?? MOCK_LB;
 
-  const { data: me } = useSWR("/api/stats/me?mock=1", fetcher, { refreshInterval: 20000 });
-  const my = me ?? { daily: MOCK_ME.daily };
-
-  const total14 = nf.format(lb.topChatters.reduce((a, b) => a + b.value, 0));
-  const avgPerDay = nf.format(Math.round(lb.topChatters.reduce((a, b) => a + b.value, 0) / 14));
+  const total14 = lb.topChatters.reduce((a, b) => a + b.value, 0);
+  const avg = Math.round(total14 / 14);
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-10">
-      <header className="mb-6">
-        <h1 className="text-3xl font-bold">Classements</h1>
-        <p className="text-white/70">
-          Live + chat visibles, classements en temps quasi réel, style Twitch — avec mini-lecteur pour ne rien louper.
-        </p>
-      </header>
+    <main className="mx-auto max-w-7xl px-5 sm:px-6 md:px-8 py-8 sm:py-10">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-6">Classements</h1>
 
-      {/* ligne métriques + stream */}
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        <MetricCard label="TOTAL 14 JOURS" value={`${total14} msgs`} />
-        <MetricCard label="MOYENNE / JOUR" value={`${avgPerDay} msgs`} />
-        <StreamCard channel="theaubeurre" />
+      {/* bandeau KPI + live compact */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+        <div className="lg:col-span-4 rounded-2xl border border-white/10 bg-black/30 p-5">
+          <div className="text-xs tracking-widest text-white/60">
+            TOTAL 14 JOURS
+          </div>
+          <div className="mt-2 text-3xl font-semibold">{nf.format(total14)} msgs</div>
+        </div>
+        <div className="lg:col-span-4 rounded-2xl border border-white/10 bg-black/30 p-5">
+          <div className="text-xs tracking-widest text-white/60">
+            MOYENNE / JOUR
+          </div>
+          <div className="mt-2 text-3xl font-semibold">{nf.format(avg)} msgs</div>
+        </div>
+        <div className="lg:col-span-4">
+          <LiveCardCompact />
+        </div>
       </div>
 
-      {/* ligne contenu : top + courbe (garde TA courbe intacte) */}
-      <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-5">
-          <TopList title="Top chatters" items={lb.topChatters} unit="msgs" withSearch />
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <TopList title="Top dons (tips)" items={lb.topDonors} unit="€" />
-            <TopList title="Top subs (mois)" items={lb.topSubs} unit="mois" />
+      {/* grilles : listes + tendance */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="lg:col-span-7 space-y-6">
+          <CompactList title="Top chatters" unit="msgs" items={lb.topChatters} />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CompactList title="Top dons (tips)" unit="€" items={lb.topDonors} />
+            <CompactList title="Top subs (mois)" unit="mois" items={lb.topSubs} />
           </div>
         </div>
 
-        <Card className="p-4">
-          <div className="mb-2 text-sm font-semibold">
-            Tendance 14 jours
-            <span className="ml-2 text-xs font-normal text-white/50">Activité du chat (mock)</span>
-          </div>
-          {my?.daily && <MiniTrend data={my.daily} height={240} />}
-        </Card>
+        <div className="lg:col-span-5">
+          <TrendCard />
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
