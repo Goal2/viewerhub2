@@ -1,6 +1,19 @@
 // src/auth.ts
 import NextAuth from "next-auth";
-import { authOptions } from "@/lib/auth"; // ta config (providers, callbacks, etc.)
+import Twitch from "next-auth/providers/twitch";
 
-// v5 : NextAuth retourne des helpers liés à CETTE instance
-export const { handlers, auth, signIn, signOut } = NextAuth(authOptions);
+export const { auth, signIn, signOut, handlers } = NextAuth({
+  providers: [
+    Twitch({
+      clientId: process.env.TWITCH_CLIENT_ID!,
+      clientSecret: process.env.TWITCH_CLIENT_SECRET!,
+      // PAS de "offline_access" ici. Scope par défaut: user:read:email
+    }),
+  ],
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true, // pratique sur Vercel (respecte NEXTAUTH_URL)
+});
+
+// On expose GET/POST pour la route API (et rien d’autre dans la route).
+export const GET = handlers.GET;
+export const POST = handlers.POST;
