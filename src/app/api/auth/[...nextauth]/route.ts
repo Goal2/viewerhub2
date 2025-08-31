@@ -1,16 +1,7 @@
-import NextAuth from "next-auth";
-import Twitch from "next-auth/providers/twitch";
+// src/app/api/auth/[...nextauth]/route.ts
 
-export const { handlers: { GET, POST }, auth } = NextAuth({
-  // IMPORTANT: ne mets pas offline_access ici
-  providers: [
-    Twitch({
-      clientId: process.env.TWITCH_CLIENT_ID!,
-      clientSecret: process.env.TWITCH_CLIENT_SECRET!,
-      // scope par défaut: "user:read:email"
-    }),
-  ],
-  secret: process.env.NEXTAUTH_SECRET,
-  trustHost: true,            // utile sur Vercel
-  // Pas de baseUrl/localhost en dur — NEXTAUTH_URL fait foi
-});
+// Si tu as le path alias "@/*" -> "src/*" dans tsconfig, garde cette ligne :
+export { GET, POST } from "@/auth";
+
+// Sinon, utilise un import relatif :
+// export { GET, POST } from "../../../../auth";
