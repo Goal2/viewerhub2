@@ -1,8 +1,16 @@
-// src/app/api/auth/[...nextauth]/route.ts
 import NextAuth from "next-auth";
-import { authOptions } from "@/lib/auth"; // défini plus bas
+import Twitch from "next-auth/providers/twitch";
 
-const handler = NextAuth(authOptions);
-
-// Next.js App Router: il faut exporter GET et POST
-export { handler as GET, handler as POST };
+export const { handlers: { GET, POST }, auth } = NextAuth({
+  // IMPORTANT: ne mets pas offline_access ici
+  providers: [
+    Twitch({
+      clientId: process.env.TWITCH_CLIENT_ID!,
+      clientSecret: process.env.TWITCH_CLIENT_SECRET!,
+      // scope par défaut: "user:read:email"
+    }),
+  ],
+  secret: process.env.NEXTAUTH_SECRET,
+  trustHost: true,            // utile sur Vercel
+  // Pas de baseUrl/localhost en dur — NEXTAUTH_URL fait foi
+});
