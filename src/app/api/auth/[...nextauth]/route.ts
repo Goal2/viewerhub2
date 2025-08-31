@@ -1,7 +1,7 @@
 // src/app/api/auth/[...nextauth]/route.ts
+import NextAuth from "next-auth";
+import { authOptions } from "@/auth"; // ou chemin relatif: "../../../../auth"
 
-// Si tu as le path alias "@/*" -> "src/*" dans tsconfig, garde cette ligne :
-export { GET, POST } from "@/auth";
+const handler = NextAuth(authOptions);
 
-// Sinon, utilise un import relatif :
-// export { GET, POST } from "../../../../auth";
+export { handler as GET, handler as POST };
