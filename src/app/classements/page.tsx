@@ -1,6 +1,6 @@
 // src/app/classements/page.tsx
 "use client";
-
+import StreamInlinePill from "@/components/StreamInlinePill";
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, Tooltip } from "recharts";
@@ -150,3 +150,4 @@ export default function ClassementsPage() {
     </main>
   );
 }
+
