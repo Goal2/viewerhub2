@@ -205,7 +205,6 @@ export default function HomePage() {
         <p className="mt-3 max-w-2xl text-white/75">
           Connecte ton compte Twitch et découvre tes <strong>classements</strong>, ton
           <strong> activité de chat</strong>, tes heures devant le stream, tes <strong>tips/subs</strong>…
-          le tout dans une interface inspirée de Twitch.
         </p>
 
         <div className="mt-5 flex flex-wrap gap-3">
