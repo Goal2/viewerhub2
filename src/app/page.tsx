@@ -1,11 +1,12 @@
-// src/app/page.tsx
 "use client";
 
-import { useMemo } from "react";
 import useSWR from "swr";
+import { useMemo } from "react";
 
-/* ----------------------------- helpers ----------------------------- */
-const fetcher = (url: string) => fetch(url).then((r) => r.json());
+/* ---------------------------------------------------
+ * utils
+ * --------------------------------------------------- */
+const fetcher = (u: string) => fetch(u).then((r) => r.json());
 const nf = new Intl.NumberFormat("fr-FR");
 
 type StreamInfo = {
@@ -13,12 +14,11 @@ type StreamInfo = {
   title?: string;
   game?: string;
   viewers?: number;
-  started_at?: string;
 };
 
-type Pt = { x: number; y: number };
-
-/* ----------------------------- graph ------------------------------- */
+/* ---------------------------------------------------
+ * Smooth line chart (identique visuel que ta base)
+ * --------------------------------------------------- */
 const MOCK_TREND = [6, 9, 13, 8, 7, 12, 10, 5, 3, 4, 7, 7, 5, 9];
 
 function SmoothLine({
@@ -34,7 +34,7 @@ function SmoothLine({
   const w = width - pad * 2;
   const h = height - pad * 2;
 
-  const pts: Pt[] = useMemo(() => {
+  const pts = useMemo(() => {
     const max = Math.max(...values, 1);
     const step = w / Math.max(values.length - 1, 1);
     return values.map((v, i) => ({
@@ -51,7 +51,6 @@ function SmoothLine({
       if (i === 0) d.push(`M ${p.x},${p.y}`);
       else {
         const p0 = pts[i - 1];
-        // courbe lissée (bézier)
         const cx1 = p0.x + (p.x - p0.x) / 2;
         const cy1 = p0.y;
         const cx2 = p0.x + (p.x - p0.x) / 2;
@@ -63,36 +62,7 @@ function SmoothLine({
   }, [pts]);
 
   return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      className="w-full h-full"
-      role="img"
-      aria-label="Courbe d'activité du chat (exemple)"
-    >
-      {/* grille discrète */}
-      <g opacity={0.25}>
-        {[0, 1, 2, 3, 4].map((i) => (
-          <line
-            key={i}
-            x1={pad}
-            x2={width - pad}
-            y1={pad + ((height - pad * 2) / 4) * i}
-            y2={pad + ((height - pad * 2) / 4) * i}
-            stroke="url(#gridStroke)"
-          />
-        ))}
-        {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-          <line
-            key={i}
-            y1={pad}
-            y2={height - pad}
-            x1={pad + ((width - pad * 2) / 6) * i}
-            x2={pad + ((width - pad * 2) / 6) * i}
-            stroke="url(#gridStroke)"
-          />
-        ))}
-      </g>
-
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
       <defs>
         <linearGradient id="gridStroke" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="#94a3b8" stopOpacity="0.15" />
@@ -108,18 +78,44 @@ function SmoothLine({
         </linearGradient>
       </defs>
 
-      {/* aplat sous la courbe */}
+      {/* grille */}
+      <g opacity={0.25}>
+        {[0, 1, 2, 3, 4].map((i) => (
+          <line
+            key={`h${i}`}
+            x1={pad}
+            x2={width - pad}
+            y1={pad + ((height - pad * 2) / 4) * i}
+            y2={pad + ((height - pad * 2) / 4) * i}
+            stroke="url(#gridStroke)"
+          />
+        ))}
+        {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+          <line
+            key={`v${i}`}
+            y1={pad}
+            y2={height - pad}
+            x1={pad + ((width - pad * 2) / 6) * i}
+            x2={pad + ((width - pad * 2) / 6) * i}
+            stroke="url(#gridStroke)"
+          />
+        ))}
+      </g>
+
+      {/* aplat + courbe */}
       <path
         d={`${path} L ${width - pad},${height - pad} L ${pad},${height - pad} Z`}
         fill="url(#fillGrad)"
       />
-      {/* la courbe */}
       <path d={path} fill="none" stroke="url(#lineGrad)" strokeWidth={3} />
     </svg>
   );
 }
 
-/* ----------------------------- live card ---------------------------- */
+/* ---------------------------------------------------
+ * Live card – TOUJOURS intégrer l'iframe Twitch
+ * (même hors-ligne -> l'écran “offline” de Twitch s’affiche)
+ * --------------------------------------------------- */
 function LiveCard() {
   const { data } = useSWR<StreamInfo>(
     "/api/twitch/stream?channel=theaubeurre",
@@ -127,57 +123,45 @@ function LiveCard() {
     { refreshInterval: 30_000 }
   );
 
+  const parent =
+    process.env.NEXT_PUBLIC_TWITCH_PARENT || "viewerhub2.vercel.app";
   const online = data?.online;
 
-  // parent pour l’iframe Twitch (doit correspondre à ta variable d'env sur Vercel)
-  const parent =
-    process.env.NEXT_PUBLIC_TWITCH_PARENT || "localhost";
-
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 shadow-[0_0_120px_-30px_rgba(99,102,241,.35)]">
+    <div className="rounded-2xl border border-white/10 bg-black/30">
       <div className="flex items-center justify-between px-4 sm:px-5 py-3 border-b border-white/10">
         <div className="font-medium">theaubeurre</div>
-        <div className="flex items-center gap-2 text-xs">
+        <div className="text-xs flex items-center gap-2">
           <span
             className={`inline-block h-2.5 w-2.5 rounded-full ${
-              online ? "bg-emerald-400 shadow-[0_0_12px_2px_rgba(16,185,129,.6)]" : "bg-slate-400"
+              online ? "bg-emerald-400 shadow-[0_0_10px_2px_rgba(16,185,129,.6)]" : "bg-slate-400"
             }`}
           />
           {online ? "En ligne" : "Hors ligne"}
         </div>
       </div>
-
       <div className="p-2 sm:p-3">
         <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-gradient-to-b from-slate-900 to-slate-950">
-          {online ? (
-            <iframe
-              className="absolute inset-0 h-full w-full"
-              src={`https://player.twitch.tv/?channel=theaubeurre&parent=${parent}&muted=true&autoplay=true`}
-              allow="autoplay; picture-in-picture; encrypted-media"
-              allowFullScreen
-            />
-          ) : (
-            <div className="absolute inset-0 grid place-items-center">
-              <div className="text-center">
-                <div className="text-sm text-white/70">
-                  Hors ligne pour le moment
-                </div>
-                <div className="mt-1 text-xs text-white/50">
-                  Le lecteur s’affichera automatiquement dès que le stream
-                  commencera.
-                </div>
-              </div>
-            </div>
-          )}
-          {/* glow subtil en fond */}
+          {/* Toujours l’iframe */}
+          <iframe
+            className="absolute inset-0 h-full w-full"
+            src={`https://player.twitch.tv/?channel=theaubeurre&parent=${parent}&muted=true&autoplay=true`}
+            allow="autoplay; picture-in-picture; encrypted-media"
+            allowFullScreen
+          />
           <div className="pointer-events-none absolute -inset-20 rounded-[40px] bg-[radial-gradient(ellipse_at_center,_rgba(99,102,241,.25),_transparent_60%)] blur-2xl" />
         </div>
+        {data?.title && (
+          <div className="mt-2 line-clamp-1 text-sm text-white/70">{data.title}</div>
+        )}
+        {data?.game && (
+          <div className="text-xs text-white/50">Jeu : {data.game}</div>
+        )}
       </div>
     </div>
   );
 }
 
-/* ----------------------------- stats tile --------------------------- */
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="min-w-[11rem]">
@@ -187,9 +171,10 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-/* ----------------------------- page -------------------------------- */
+/* ---------------------------------------------------
+ * Page
+ * --------------------------------------------------- */
 export default function HomePage() {
-  // mock de stats d’exemple
   const messages14 = 12457;
   const avgDay = 889;
   const hours = 42;
@@ -197,16 +182,19 @@ export default function HomePage() {
 
   return (
     <main className="relative mx-auto max-w-7xl px-5 sm:px-6 md:px-8 py-10 sm:py-12">
-      {/* Titre + CTA */}
+      {/* Header */}
       <section className="mb-10">
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold">
-          Bienvenue sur <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-300">ViewerHub</span>
+          Bienvenue sur{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-cyan-300">
+            ViewerHub
+          </span>
         </h1>
         <p className="mt-3 max-w-2xl text-white/75">
-          Connecte ton compte Twitch et découvre tes <strong>classements</strong>, ton
-          <strong> activité de chat</strong>, tes heures devant le stream, tes <strong>tips/subs</strong>…
+          Connecte ton compte Twitch et découvre tes <strong>classements</strong>, ton{" "}
+          <strong>activité de chat</strong>, tes heures devant le stream, tes{" "}
+          <strong>tips/subs</strong>… le tout dans une interface inspirée de Twitch.
         </p>
-
         <div className="mt-5 flex flex-wrap gap-3">
           <a
             href="/api/auth/signin"
@@ -223,7 +211,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats en une ligne, sans chevauchement */}
+      {/* Stats */}
       <section className="mb-8">
         <div className="flex flex-wrap gap-8 sm:gap-12">
           <Stat label="MESSAGES / 14J" value={nf.format(messages14)} />
@@ -233,7 +221,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Grille : à gauche le graphique, à droite la carte Live */}
+      {/* Graph à gauche / Live à droite */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-7 rounded-2xl border border-white/10 bg-black/30 p-4 sm:p-5">
           <div className="mb-2 flex items-end justify-between">
